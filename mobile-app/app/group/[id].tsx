@@ -69,6 +69,7 @@ export default function GroupDetailsScreen() {
   const { user } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<'expenses' | 'settlements' | 'funds'>('expenses');
+  const [simplifyMode, setSimplifyMode] = useState(false);
   const [copied, setCopied] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
   const [settling, setSettling] = useState(false);
@@ -79,6 +80,7 @@ export default function GroupDetailsScreen() {
     members,
     expenses,
     netBalances,
+    rawDebts,
     funds,
     pendingSettlements,
     loading,
@@ -239,9 +241,10 @@ export default function GroupDetailsScreen() {
   const budgetProgress = budgetAmount > 0 ? totalGroupExpense / budgetAmount : 0;
 
   // Personalized "who pays whom" for the current user.
-  const simplified = simplifyDebts(netBalances);
-  const myDebts = simplified.filter((d) => d.from_id === user?.id);
-  const myCredits = simplified.filter((d) => d.to_id === user?.id);
+  // Default: raw pairwise debts (A→B, B→C kept separate). Opt-in: simplified netting.
+  const activeDebts = simplifyMode ? simplifyDebts(netBalances) : rawDebts;
+  const myDebts = activeDebts.filter((d) => d.from_id === user?.id);
+  const myCredits = activeDebts.filter((d) => d.to_id === user?.id);
 
   return (
     <Screen
@@ -434,6 +437,46 @@ export default function GroupDetailsScreen() {
 
       {activeTab === 'settlements' ? (
         <View>
+          <View className="mb-5">
+            <View className="flex-row rounded-2xl border border-surface-line bg-surface-fill p-1">
+              <TouchableOpacity
+                onPress={() => setSimplifyMode(false)}
+                className={`flex-1 items-center rounded-xl py-2.5 ${
+                  !simplifyMode ? 'border border-surface-line bg-surface-glass' : ''
+                }`}
+              >
+                <GlassText
+                  className={`font-outfit-bold text-[11px] uppercase tracking-tight ${
+                    !simplifyMode ? 'text-content' : 'text-content-faint'
+                  }`}
+                >
+                  {t('groupDetail.debtDetailed')}
+                </GlassText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSimplifyMode(true)}
+                className={`flex-1 items-center rounded-xl py-2.5 ${
+                  simplifyMode ? 'border border-surface-line bg-surface-glass' : ''
+                }`}
+              >
+                <GlassText
+                  className={`font-outfit-bold text-[11px] uppercase tracking-tight ${
+                    simplifyMode ? 'text-content' : 'text-content-faint'
+                  }`}
+                >
+                  {t('groupDetail.debtSimplified')}
+                </GlassText>
+              </TouchableOpacity>
+            </View>
+            <GlassText
+              variant="caption"
+              className="ml-1 mt-2 normal-case text-[10px] leading-4 text-content-faint"
+            >
+              {simplifyMode
+                ? t('groupDetail.debtSimplifiedHint')
+                : t('groupDetail.debtDetailedHint')}
+            </GlassText>
+          </View>
           {myDebts.length === 0 && myCredits.length === 0 ? (
             <EmptyState
               icon={ShieldCheck}

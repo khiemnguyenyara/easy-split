@@ -100,6 +100,9 @@
     "emptyDesc": "Bạn sẽ nhận được thông báo khi có chi tiêu mới hoặc lời mời tham gia nhóm."
   },
   "notif": {
+    "actionsTitle": "Thông báo",
+    "markRead": "Đánh dấu đã đọc",
+    "delete": "Xóa thông báo",
     "expenseAddedTitle": "Chi tiêu mới",
     "expenseAddedBody": "{{actor}} đã thêm chi tiêu vào {{group}}",
     "settlementSubmittedTitle": "Có người trả nợ",
@@ -155,6 +158,10 @@
     "expenseBy": "Bởi {{name}} • {{date}}",
     "allSettled": "Bạn đã cân bằng",
     "allSettledDesc": "Bạn không có khoản nào cần trả hay cần thu trong nhóm này.",
+    "debtDetailed": "Chi tiết",
+    "debtSimplified": "Tối giản",
+    "debtDetailedHint": "Hiển thị từng khoản nợ trực tiếp giữa hai người. Bạn tự kiểm soát ai trả cho ai.",
+    "debtSimplifiedHint": "Tự động bù trừ nợ toàn nhóm để chuyển khoản ít lần nhất. Có thể có người trả thay bạn cho người thứ ba.",
     "youPay": "Bạn cần trả",
     "youReceive": "Bạn sẽ nhận",
     "payTo": "Trả cho",

@@ -100,6 +100,9 @@
     "emptyDesc": "You'll be notified when there's a new expense or a group invite."
   },
   "notif": {
+    "actionsTitle": "Notification",
+    "markRead": "Mark as read",
+    "delete": "Delete",
     "expenseAddedTitle": "New expense",
     "expenseAddedBody": "{{actor}} added an expense to {{group}}",
     "settlementSubmittedTitle": "Payment submitted",
@@ -155,6 +158,10 @@
     "expenseBy": "By {{name}} • {{date}}",
     "allSettled": "You're all settled up",
     "allSettledDesc": "You have no debts to pay or collect in this group.",
+    "debtDetailed": "Detailed",
+    "debtSimplified": "Simplified",
+    "debtDetailedHint": "Shows each direct debt between two people. You stay in control of who pays whom.",
+    "debtSimplifiedHint": "Debts are auto-netted across the group for the fewest transfers. Someone may pay a third person on your behalf.",
     "youPay": "You need to pay",
     "youReceive": "You'll receive",
     "payTo": "Pay to",

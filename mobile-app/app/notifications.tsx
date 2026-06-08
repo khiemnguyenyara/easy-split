@@ -1,18 +1,40 @@
 import React, { useCallback } from 'react';
-import { View, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { BellOff, Receipt, Wallet, Bell, MessageCircle } from 'lucide-react-native';
+import { BellOff, Receipt, Wallet, Bell, MessageCircle, MoreVertical } from 'lucide-react-native';
 import { useNotifications, AppNotification } from '../src/hooks/useNotifications';
 import { useThemeColors } from '../src/theme';
-import { Screen, GlassCard, GlassText, EmptyState, Loader } from '../src/components/ui';
+import { Screen, GlassText, EmptyState, Loader } from '../src/components/ui';
 
 export default function NotificationsScreen() {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const router = useRouter();
-  const { notifications, loading, refreshing, fetchData, onRefresh, markAllRead } =
-    useNotifications();
+  const {
+    notifications,
+    loading,
+    refreshing,
+    fetchData,
+    onRefresh,
+    markAllRead,
+    markOneRead,
+    removeNotification,
+  } = useNotifications();
+
+  const openActions = (n: AppNotification) => {
+    const buttons: { text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }[] = [];
+    if (!n.is_read) {
+      buttons.push({ text: t('notif.markRead'), onPress: () => markOneRead(n.notification_id) });
+    }
+    buttons.push({
+      text: t('notif.delete'),
+      style: 'destructive',
+      onPress: () => removeNotification(n.notification_id),
+    });
+    buttons.push({ text: t('common.cancel'), style: 'cancel' });
+    Alert.alert(t('notif.actionsTitle'), undefined, buttons);
+  };
 
   // Load on focus; mark everything read when leaving so the home badge clears.
   useFocusEffect(
@@ -101,34 +123,38 @@ export default function NotificationsScreen() {
               activeOpacity={0.7}
               disabled={!groupId}
               onPress={() => groupId && router.push(`/group/${groupId}`)}
+              className={`mb-3 flex-row items-start rounded-2xl border p-4 ${
+                unread ? 'border-accent/30 bg-accent/5' : 'border-surface-line bg-surface-fill'
+              }`}
             >
-              <GlassCard
-                intensity={unread ? 30 : 15}
-                className={`mb-3 flex-row items-start ${unread ? 'border-accent/20' : ''}`}
-                padding="p-4"
+              <View
+                className={`mr-3 h-10 w-10 items-center justify-center rounded-xl ${
+                  unread ? 'bg-accent/20' : 'border border-surface-line bg-surface-glass'
+                }`}
               >
-                <View
-                  className={`mr-3 h-10 w-10 items-center justify-center rounded-xl ${
-                    unread ? 'bg-accent/20' : 'border border-surface-line bg-surface-fill'
-                  }`}
-                >
-                  <Icon size={18} color={unread ? colors.accent : colors.content} />
-                </View>
-                <View className="flex-1">
-                  <View className="flex-row items-center">
-                    <GlassText className="flex-1 font-outfit-bold text-sm" numberOfLines={1}>
-                      {title}
-                    </GlassText>
-                    {unread ? <View className="ml-2 h-2 w-2 rounded-full bg-accent" /> : null}
-                  </View>
-                  <GlassText variant="caption" className="mt-0.5 normal-case leading-5">
-                    {body}
+                <Icon size={18} color={unread ? colors.accent : colors.content} />
+              </View>
+              <View className="flex-1">
+                <View className="flex-row items-center">
+                  <GlassText className="flex-1 font-outfit-bold text-sm" numberOfLines={1}>
+                    {title}
                   </GlassText>
-                  <GlassText variant="caption" className="mt-1 text-[10px] opacity-50">
-                    {formatTime(n.created_at)}
-                  </GlassText>
+                  {unread ? <View className="ml-2 h-2 w-2 rounded-full bg-accent" /> : null}
                 </View>
-              </GlassCard>
+                <GlassText variant="caption" className="mt-0.5 normal-case leading-5">
+                  {body}
+                </GlassText>
+                <GlassText variant="caption" className="mt-1 text-[10px] opacity-50">
+                  {formatTime(n.created_at)}
+                </GlassText>
+              </View>
+              <TouchableOpacity
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={() => openActions(n)}
+                className="-mr-1 ml-1 h-8 w-8 items-center justify-center rounded-full"
+              >
+                <MoreVertical size={18} color={colors.contentFaint} />
+              </TouchableOpacity>
             </TouchableOpacity>
           );
         })

@@ -36,5 +36,40 @@ export const useNotifications = () => {
     }
   }, []);
 
-  return { notifications, loading, refreshing, fetchData, onRefresh, markAllRead };
+  /** Mark a single notification as read (optimistic). */
+  const markOneRead = useCallback(async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.notification_id === id ? { ...n, is_read: true } : n))
+    );
+    try {
+      await groupService.markNotificationRead(id);
+    } catch (error) {
+      console.error('Error marking notification read:', error);
+    }
+  }, []);
+
+  /** Delete a single notification (optimistic; re-fetch on failure to restore). */
+  const removeNotification = useCallback(
+    async (id: string) => {
+      setNotifications((prev) => prev.filter((n) => n.notification_id !== id));
+      try {
+        await groupService.deleteNotification(id);
+      } catch (error) {
+        console.error('Error deleting notification:', error);
+        fetchData();
+      }
+    },
+    [fetchData]
+  );
+
+  return {
+    notifications,
+    loading,
+    refreshing,
+    fetchData,
+    onRefresh,
+    markAllRead,
+    markOneRead,
+    removeNotification,
+  };
 };

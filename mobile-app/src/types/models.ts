@@ -105,6 +105,8 @@ export interface GroupDashboard {
   members: GroupMember[];
   expenses: GroupExpense[];
   netBalances: NetBalance[];
+  /** Direct pairwise debts (A→B, B→C kept separate; no pass-through simplification). */
+  rawDebts: SimplifiedDebt[];
   fundings: Fund[];
   pendingSettlements: DebtSettlementRow[];
 }

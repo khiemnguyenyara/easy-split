@@ -5,6 +5,7 @@ import type {
   GroupMember,
   GroupExpense,
   NetBalance,
+  SimplifiedDebt,
   Fund,
   DebtSettlementRow,
 } from '../types/models';
@@ -14,6 +15,7 @@ export const useGroupDetails = (id: string | string[] | undefined) => {
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [expenses, setExpenses] = useState<GroupExpense[]>([]);
   const [netBalances, setNetBalances] = useState<NetBalance[]>([]);
+  const [rawDebts, setRawDebts] = useState<SimplifiedDebt[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
   const [pendingSettlements, setPendingSettlements] = useState<DebtSettlementRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,7 @@ export const useGroupDetails = (id: string | string[] | undefined) => {
       setMembers(data.members);
       setExpenses(data.expenses);
       setNetBalances(data.netBalances);
+      setRawDebts(data.rawDebts);
       setFunds(data.fundings);
       setPendingSettlements(data.pendingSettlements);
     } catch (error) {
@@ -57,6 +60,7 @@ export const useGroupDetails = (id: string | string[] | undefined) => {
     members,
     expenses,
     netBalances,
+    rawDebts,
     funds,
     pendingSettlements,
     loading,

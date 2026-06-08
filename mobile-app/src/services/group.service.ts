@@ -5,6 +5,7 @@ import type {
   GroupMember,
   GroupExpense,
   NetBalance,
+  SimplifiedDebt,
   FeedExpense,
   GroupDebt,
   DebtTotals,
@@ -282,6 +283,45 @@ export const groupService = {
 
     finalNetBalances.sort((a, b) => b.amount - a.amount);
 
+    // 4b. Raw pairwise debts: each split member owes the expense payer their share.
+    // Net only WITHIN each pair (A vs B) — do NOT collapse chains (A→B→C stays separate).
+    const payerByExpense: Record<string, string> = {};
+    expenses.forEach((e) => {
+      if (e.payer_id) payerByExpense[e.expense_id] = e.payer_id;
+    });
+    const nameById: Record<string, string> = {};
+    members.forEach((m) => {
+      nameById[m.user_id] = m.full_name || i18n.t('common.user');
+    });
+
+    // pairKey = "<idLow>|<idHigh>"; sign + => idLow owes idHigh, - => idHigh owes idLow.
+    const pairNet: Record<string, number> = {};
+    splitsData?.forEach((s) => {
+      const creditor = s.expense_id ? payerByExpense[s.expense_id] : undefined;
+      const debtor = s.user_id ?? undefined;
+      if (!creditor || !debtor || creditor === debtor) return;
+      const idLow = debtor < creditor ? debtor : creditor;
+      const idHigh = debtor < creditor ? creditor : debtor;
+      const sign = debtor === idLow ? 1 : -1;
+      const key = `${idLow}|${idHigh}`;
+      pairNet[key] = (pairNet[key] || 0) + sign * s.share_amount;
+    });
+
+    const rawDebts: SimplifiedDebt[] = [];
+    Object.entries(pairNet).forEach(([key, amt]) => {
+      if (Math.abs(amt) < 1) return;
+      const [idLow, idHigh] = key.split('|');
+      const fromId = amt > 0 ? idLow : idHigh;
+      const toId = amt > 0 ? idHigh : idLow;
+      rawDebts.push({
+        from_id: fromId,
+        from_name: nameById[fromId] ?? '',
+        to_id: toId,
+        to_name: nameById[toId] ?? '',
+        amount: Math.round(Math.abs(amt)),
+      });
+    });
+
     // 5. Fetch group funds (for the group dashboard "Funds" tab preview)
     const { data: fundingsData } = await supabase
       .from('fundings')
@@ -301,6 +341,7 @@ export const groupService = {
       members,
       expenses,
       netBalances: finalNetBalances,
+      rawDebts,
       fundings: fundingsData ?? [],
       pendingSettlements: pendingData ?? [],
     };
@@ -438,6 +479,24 @@ export const groupService = {
       .from('notifications')
       .update({ is_read: true })
       .eq('is_read', false);
+    if (error) throw error;
+  },
+
+  /** Mark a single notification as read. */
+  async markNotificationRead(notificationId: string) {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('notification_id', notificationId);
+    if (error) throw error;
+  },
+
+  /** Delete a single notification (requires the delete RLS policy). */
+  async deleteNotification(notificationId: string) {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('notification_id', notificationId);
     if (error) throw error;
   },
 
