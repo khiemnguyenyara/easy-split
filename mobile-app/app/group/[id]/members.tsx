@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, TouchableOpacity, Alert, Share } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, UserMinus, Shield, ShieldCheck } from 'lucide-react-native';
+import { UserPlus, UserMinus, Shield, ShieldCheck, Share2 } from 'lucide-react-native';
 import { supabase } from '../../../src/api/supabase';
 import { useAuthStore } from '../../../src/store/useAuthStore';
 import { useGroupDetails } from '../../../src/hooks/useGroupDetails';
@@ -13,6 +13,7 @@ import {
   GlassCard,
   GlassText,
   IconButton,
+  Button,
   Avatar,
   Loader,
 } from '../../../src/components/ui';
@@ -21,9 +22,11 @@ export default function MembersScreen() {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const { user } = useAuthStore();
   const { group, members, loading, fetchData } = useGroupDetails(id);
 
+  const groupId = Array.isArray(id) ? id[0] : id;
   const isOwnerUser = !!group && group.created_by === user?.id;
 
   if (loading) return <Loader fullscreen />;
@@ -52,7 +55,6 @@ export default function MembersScreen() {
           text: t('common.remove'),
           style: 'destructive',
           onPress: async () => {
-            const groupId = Array.isArray(id) ? id[0] : id;
             try {
               const { error } = await supabase
                 .from('group_members')
@@ -75,9 +77,23 @@ export default function MembersScreen() {
       title={t('members.title')}
       subtitle={group?.group_name}
       showBack
-      headerRight={<IconButton icon={UserPlus} onPress={handleInvite} />}
+      headerRight={<IconButton icon={Share2} onPress={handleInvite} />}
       contentClassName="px-6 pt-4 pb-32"
     >
+      <Button
+        title={t('addMember.title')}
+        icon={UserPlus}
+        onPress={() => router.push(`/group/${groupId}/add-member`)}
+        className="mb-3"
+      />
+      <Button
+        title={t('members.shareInvite')}
+        variant="secondary"
+        icon={Share2}
+        onPress={handleInvite}
+        className="mb-6"
+      />
+
       <GlassText variant="caption" className="mb-4 ml-1 tracking-widest">
         {t('members.listCount', { count: members.length })}
       </GlassText>
@@ -85,11 +101,9 @@ export default function MembersScreen() {
       {members.map((member) => {
         const isOwner = member.user_id === group?.created_by;
         return (
-          <GlassCard
+          <View
             key={member.user_id}
-            intensity={20}
-            className="mb-4 flex-row items-center"
-            padding="p-5"
+            className="mb-3 flex-row items-center rounded-2xl border border-surface-line bg-surface-fill p-4"
           >
             <Avatar name={member.full_name} size="lg" className="mr-4" />
 
@@ -117,7 +131,7 @@ export default function MembersScreen() {
                 <UserMinus size={18} color={colors.danger} />
               </TouchableOpacity>
             ) : null}
-          </GlassCard>
+          </View>
         );
       })}
 

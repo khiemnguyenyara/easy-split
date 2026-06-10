@@ -110,7 +110,9 @@
     "settlementConfirmedTitle": "Đã xác nhận thanh toán",
     "settlementConfirmedBody": "Khoản thanh toán của bạn đã được xác nhận",
     "messageReceivedTitle": "Tin nhắn mới",
-    "messageReceivedBody": "{{actor}} đã nhắn trong {{group}}"
+    "messageReceivedBody": "{{actor}} đã nhắn trong {{group}}",
+    "memberAddedTitle": "Bạn được thêm vào nhóm",
+    "memberAddedBody": "{{actor}} đã thêm bạn vào {{group}}"
   },
   "createGroup": {
     "successTitle": "Tạo nhóm thành công!",
@@ -213,8 +215,20 @@
     "listCount": "Danh sách ({{count}})",
     "owner": "Trưởng nhóm",
     "member": "Thành viên",
+    "shareInvite": "Mời bằng mã",
     "rulesTitle": "Quy định nhóm",
     "rulesDesc": "Chỉ trưởng nhóm mới có quyền xóa thành viên hoặc thay đổi các thiết lập quan trọng của nhóm. Tất cả thành viên đều có thể thêm chi tiêu mới."
+  },
+  "addMember": {
+    "title": "Thêm thành viên",
+    "instruction": "Tìm theo tên hoặc email để thêm trực tiếp — không cần mã mời.",
+    "searchPlaceholder": "Tên hoặc email...",
+    "hintTitle": "Tìm người để thêm",
+    "hintDesc": "Nhập ít nhất 2 ký tự để tìm người dùng.",
+    "emptyTitle": "Không tìm thấy người dùng",
+    "emptyDesc": "Không có ai khớp với tìm kiếm.",
+    "alreadyMember": "Đã trong nhóm",
+    "added": "Đã thêm {{name}} vào nhóm."
   },
   "settlement": {
     "pendingConfirm": "Chờ xác nhận",

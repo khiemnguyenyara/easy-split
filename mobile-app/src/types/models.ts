@@ -25,6 +25,16 @@ export interface GroupMember {
   avatar_url: string | null;
 }
 
+/** A user surfaced by the "add member" search. */
+export interface UserSearchResult {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  /** True when this user already belongs to the group. */
+  is_member: boolean;
+}
+
 /** Expense as returned for the group dashboard (joined payer profile). */
 export interface GroupExpense {
   expense_id: string;

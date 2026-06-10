@@ -110,7 +110,9 @@
     "settlementConfirmedTitle": "Payment confirmed",
     "settlementConfirmedBody": "Your payment has been confirmed",
     "messageReceivedTitle": "New message",
-    "messageReceivedBody": "{{actor}} messaged in {{group}}"
+    "messageReceivedBody": "{{actor}} messaged in {{group}}",
+    "memberAddedTitle": "Added to a group",
+    "memberAddedBody": "{{actor}} added you to {{group}}"
   },
   "createGroup": {
     "successTitle": "Group created!",
@@ -213,8 +215,20 @@
     "listCount": "List ({{count}})",
     "owner": "Group owner",
     "member": "Member",
+    "shareInvite": "Invite by code",
     "rulesTitle": "Group rules",
     "rulesDesc": "Only the group owner can remove members or change important group settings. All members can add new expenses."
+  },
+  "addMember": {
+    "title": "Add member",
+    "instruction": "Search by name or email to add someone directly — no invite code needed.",
+    "searchPlaceholder": "Name or email...",
+    "hintTitle": "Find people to add",
+    "hintDesc": "Type at least 2 characters to search for users.",
+    "emptyTitle": "No users found",
+    "emptyDesc": "No user matches your search.",
+    "alreadyMember": "In group",
+    "added": "{{name}} has been added to the group."
   },
   "settlement": {
     "pendingConfirm": "Pending confirmation",

@@ -1,11 +1,21 @@
 import React from 'react';
 import { View, StyleSheet, ViewProps, Image } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeStore } from '../../store/useThemeStore';
 
+/**
+ * Opaque base behind the translucent sheen — approximates the average page
+ * background per theme. Replaces a live BlurView so cards don't flicker when a
+ * screen slides in/out (iOS pauses blur during transitions, causing a snap).
+ */
+const BASE_BG = {
+  light: '#F6F5EE',
+  dark: '#15122A',
+};
+
 interface GlassCardProps extends ViewProps {
   children: React.ReactNode;
+  /** No longer used (blur was removed to avoid flicker); kept for API compatibility. */
   intensity?: number;
   /** Tailwind padding applied to the inner content. Set '' to opt out. */
   padding?: string;
@@ -84,6 +94,7 @@ export const GlassCard = ({
       {...props}
     >
       <View className={`overflow-hidden rounded-[32px] border border-surface-line ${inner}`}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: BASE_BG[scheme] }]} />
         {backgroundImageUri && (
           <Image
             source={{ uri: backgroundImageUri }}
@@ -91,11 +102,6 @@ export const GlassCard = ({
             resizeMode="cover"
           />
         )}
-        <BlurView
-          intensity={intensity}
-          tint={scheme === 'dark' ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
-        />
         <LinearGradient
           colors={
             scheme === 'dark'

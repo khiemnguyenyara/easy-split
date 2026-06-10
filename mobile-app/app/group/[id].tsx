@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   Check,
   BarChart3,
+  UserPlus,
   ArrowUpRight,
   ArrowDownLeft,
   Eye,
@@ -263,6 +264,7 @@ export default function GroupDetailsScreen() {
               </View>
             ) : null}
           </View>
+          <IconButton icon={UserPlus} onPress={() => router.push(`/group/${id}/add-member`)} />
           <IconButton icon={Settings} onPress={() => router.push(`/group/${id}/members`)} />
         </View>
       }

@@ -2,7 +2,15 @@ import React, { useCallback } from 'react';
 import { View, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { BellOff, Receipt, Wallet, Bell, MessageCircle, MoreVertical } from 'lucide-react-native';
+import {
+  BellOff,
+  Receipt,
+  Wallet,
+  Bell,
+  MessageCircle,
+  MoreVertical,
+  UserPlus,
+} from 'lucide-react-native';
 import { useNotifications, AppNotification } from '../src/hooks/useNotifications';
 import { useThemeColors } from '../src/theme';
 import { Screen, GlassText, EmptyState, Loader } from '../src/components/ui';
@@ -75,6 +83,15 @@ export default function NotificationsScreen() {
           icon: MessageCircle,
           title: t('notif.messageReceivedTitle'),
           body: t('notif.messageReceivedBody', {
+            actor: p.actor || t('common.user'),
+            group: p.group_name || '',
+          }),
+        };
+      case 'member_added':
+        return {
+          icon: UserPlus,
+          title: t('notif.memberAddedTitle'),
+          body: t('notif.memberAddedBody', {
             actor: p.actor || t('common.user'),
             group: p.group_name || '',
           }),

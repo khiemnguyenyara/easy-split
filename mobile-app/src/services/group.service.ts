@@ -10,6 +10,7 @@ import type {
   GroupDebt,
   DebtTotals,
   AppNotification,
+  UserSearchResult,
 } from '../types/models';
 
 export interface CreateGroupPayload {
@@ -111,6 +112,36 @@ export const groupService = {
     if (joinError) throw joinError;
 
     return groupId;
+  },
+
+  /**
+   * Search users (by name or email) who can be added to a group, excluding
+   * people already in it. Returns at most 10 matches.
+   */
+  async searchUsersForGroup(groupId: string, query: string): Promise<UserSearchResult[]> {
+    // @ts-ignore - Supabase type gen doesn't always pick up RPC endpoints
+    const { data, error } = await supabase.rpc('search_users_for_group', {
+      i_group_id: groupId,
+      i_query: query,
+    });
+
+    if (error) throw error;
+
+    return (data as UserSearchResult[]) || [];
+  },
+
+  /**
+   * Add a user to a group directly (no invite code needed). The backend also
+   * sends the new member an in-app notification.
+   */
+  async addMemberToGroup(groupId: string, userId: string) {
+    // @ts-ignore - Supabase type gen doesn't always pick up RPC endpoints
+    const { error } = await supabase.rpc('add_member_to_group', {
+      i_group_id: groupId,
+      i_user_id: userId,
+    });
+
+    if (error) throw error;
   },
 
   /**
