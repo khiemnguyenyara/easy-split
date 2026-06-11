@@ -14,6 +14,7 @@
     "somethingWrong": "Đã có lỗi xảy ra.",
     "tryAgainLater": "Đã có lỗi xảy ra. Vui lòng thử lại.",
     "user": "Người dùng",
+    "group": "nhóm",
     "you": "(Bạn)",
     "missingInfo": "Thiếu thông tin",
     "memberCount": "{{count}} thành viên",
@@ -216,6 +217,10 @@
     "owner": "Trưởng nhóm",
     "member": "Thành viên",
     "shareInvite": "Mời bằng mã",
+    "leaveButton": "Rời nhóm",
+    "leaveTitle": "Rời nhóm",
+    "leaveConfirm": "Bạn có chắc muốn rời khỏi nhóm \"{{name}}\" không?",
+    "leaveAction": "Rời nhóm",
     "rulesTitle": "Quy định nhóm",
     "rulesDesc": "Chỉ trưởng nhóm mới có quyền xóa thành viên hoặc thay đổi các thiết lập quan trọng của nhóm. Tất cả thành viên đều có thể thêm chi tiêu mới."
   },

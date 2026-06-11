@@ -65,6 +65,10 @@ type RawOwesRow = {
   share_amount: number;
   expenses: { group_id: string | null } | { group_id: string | null }[] | null;
 };
+type RawOwesPayerRow = {
+  share_amount: number;
+  expenses: { payer_id: string | null } | { payer_id: string | null }[] | null;
+};
 type RawSettlementRow = {
   group_id: string | null;
   debtor_id: string | null;
@@ -382,7 +386,7 @@ export const groupService = {
    * Fetch global total balance details for a specific user across all groups.
    */
   async getUserDashboardBalances(userId: string): Promise<DebtTotals> {
-    // 1. Fetch all expenses paid by user
+    // 1. Expenses the user paid → every other participant owes the user their share.
     const { data: userPaid, error: paidError } = await supabase
       .from('expenses')
       .select(
@@ -399,7 +403,7 @@ export const groupService = {
 
     if (paidError) throw paidError;
 
-    // 2. Fetch all splits where user is a participant but NOT the payer
+    // 2. Splits where the user took part but someone else paid → the user owes that payer.
     const { data: userOwesSplits, error: owesError } = await supabase
       .from('expense_splits')
       .select(
@@ -415,47 +419,36 @@ export const groupService = {
 
     if (owesError) throw owesError;
 
-    // 3. Fetch paid settlements
-    const { data: settlements, error: settlementsError } = await supabase
-      .from('debt_settlements')
-      .select('debtor_id, creditor_id, amount')
-      .eq('status', 'confirmed')
-      .or(`debtor_id.eq.${userId},creditor_id.eq.${userId}`);
+    // Net position per counterparty: positive => they owe the user, negative =>
+    // the user owes them. Netted pairwise — the same model as the group
+    // dashboard (which derives balances from expenses/splits only, with no
+    // settlement adjustment). Deriving all three figures from these nets keeps
+    // them reconciled (totalBalance === owedToUser - userOwes) and makes the
+    // home total equal the sum of every group's balances.
+    const net: Record<string, number> = {};
+    const bump = (id: string | null | undefined, delta: number) => {
+      if (!id || id === userId) return;
+      net[id] = (net[id] || 0) + delta;
+    };
 
-    if (settlementsError) throw settlementsError;
-
-    // Calculate "Owed to user"
-    // = Sum of shares of OTHER people in expenses paid by user
-    let owed = 0;
     userPaid?.forEach((exp) => {
-      exp.expense_splits?.forEach((split) => {
-        if (split.user_id !== userId) {
-          owed += split.share_amount;
-        }
-      });
+      exp.expense_splits?.forEach((split) => bump(split.user_id, split.share_amount));
     });
 
-    // Calculate "User owes"
-    // = Sum of user's shares in expenses paid by others
+    (userOwesSplits as RawOwesPayerRow[] | null)?.forEach((split) => {
+      bump(firstOf(split.expenses)?.payer_id, -split.share_amount);
+    });
+
+    let owed = 0;
     let owes = 0;
-    userOwesSplits?.forEach((split) => {
-      owes += split.share_amount;
-    });
-
-    // Adjust with settlements
-    settlements?.forEach((s) => {
-      if (s.creditor_id === userId) {
-        // User received money, reduces what's owed to them
-        owed -= s.amount;
-      } else if (s.debtor_id === userId) {
-        // User paid money, reduces what they owe
-        owes -= s.amount;
-      }
+    Object.values(net).forEach((amount) => {
+      if (amount > 0) owed += amount;
+      else owes += -amount;
     });
 
     return {
-      owedToUser: Math.max(0, owed),
-      userOwes: Math.max(0, owes),
+      owedToUser: owed,
+      userOwes: owes,
       totalBalance: owed - owes,
     };
   },

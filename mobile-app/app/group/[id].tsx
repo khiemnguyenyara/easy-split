@@ -49,7 +49,6 @@ import {
   GlassText,
   Button,
   IconButton,
-  ListItem,
   EmptyState,
   Avatar,
   Loader,
@@ -408,30 +407,37 @@ export default function GroupDetailsScreen() {
             <EmptyState icon={Receipt} title={t('groupDetail.noExpenses')} />
           ) : (
             expenses.map((expense) => (
-              <ListItem
+              <View
                 key={expense.expense_id}
-                icon={Receipt}
-                title={expense.description || t('expenses.untitled')}
-                subtitle={
-                  t('groupDetail.expenseBy', {
-                    name: expense.profiles?.full_name?.split(' ')[0],
-                    date: formatDate(expense.created_at),
-                  }) +
-                  (expense.category
-                    ? ` • ${
-                        (EXPENSE_CATEGORY_IDS as readonly string[]).includes(expense.category)
-                          ? t(`category.${expense.category}`)
-                          : expense.category
-                      }`
-                    : '')
-                }
-                className="mb-4"
-                trailing={
-                  <GlassText variant="h3" className="text-lg">
-                    {formatCurrency(expense.amount)}
+                className="mb-3 flex-row items-center rounded-2xl border border-surface-line bg-surface-fill p-4"
+              >
+                <View className="mr-4 h-12 w-12 items-center justify-center rounded-2xl border border-surface-line bg-surface-glass">
+                  <Receipt size={22} color={colors.content} />
+                </View>
+
+                <View className="flex-1">
+                  <GlassText className="font-outfit-bold text-base" numberOfLines={1}>
+                    {expense.description || t('expenses.untitled')}
                   </GlassText>
-                }
-              />
+                  <GlassText variant="caption" className="mt-0.5" numberOfLines={1}>
+                    {t('groupDetail.expenseBy', {
+                      name: expense.profiles?.full_name?.split(' ')[0],
+                      date: formatDate(expense.created_at),
+                    }) +
+                      (expense.category
+                        ? ` • ${
+                            (EXPENSE_CATEGORY_IDS as readonly string[]).includes(expense.category)
+                              ? t(`category.${expense.category}`)
+                              : expense.category
+                          }`
+                        : '')}
+                  </GlassText>
+                </View>
+
+                <GlassText className="ml-3 font-outfit-bold text-base">
+                  {formatCurrency(expense.amount)}
+                </GlassText>
+              </View>
             ))
           )}
         </View>

@@ -14,6 +14,7 @@
     "somethingWrong": "Something went wrong.",
     "tryAgainLater": "Something went wrong. Please try again.",
     "user": "User",
+    "group": "group",
     "you": "(You)",
     "missingInfo": "Missing info",
     "memberCount": "{{count}} members",
@@ -216,6 +217,10 @@
     "owner": "Group owner",
     "member": "Member",
     "shareInvite": "Invite by code",
+    "leaveButton": "Leave group",
+    "leaveTitle": "Leave group",
+    "leaveConfirm": "Are you sure you want to leave \"{{name}}\"?",
+    "leaveAction": "Leave",
     "rulesTitle": "Group rules",
     "rulesDesc": "Only the group owner can remove members or change important group settings. All members can add new expenses."
   },

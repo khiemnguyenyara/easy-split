@@ -2,7 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, Alert, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, UserMinus, Shield, ShieldCheck, Share2 } from 'lucide-react-native';
+import { UserPlus, UserMinus, Shield, ShieldCheck, Share2, LogOut } from 'lucide-react-native';
 import { supabase } from '../../../src/api/supabase';
 import { useAuthStore } from '../../../src/store/useAuthStore';
 import { useGroupDetails } from '../../../src/hooks/useGroupDetails';
@@ -63,6 +63,35 @@ export default function MembersScreen() {
                 .eq('user_id', member.user_id);
               if (error) throw error;
               fetchData();
+            } catch (error) {
+              Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLeaveGroup = () => {
+    const userId = user?.id;
+    if (!userId) return;
+    Alert.alert(
+      t('members.leaveTitle'),
+      t('members.leaveConfirm', { name: group?.group_name || t('common.group') }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('members.leaveAction'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('group_members')
+                .delete()
+                .eq('group_id', groupId)
+                .eq('user_id', userId);
+              if (error) throw error;
+              router.replace('/(tabs)/groups');
             } catch (error) {
               Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
             }
@@ -146,6 +175,16 @@ export default function MembersScreen() {
           {t('members.rulesDesc')}
         </GlassText>
       </GlassCard>
+
+      {!isOwnerUser ? (
+        <Button
+          title={t('members.leaveButton')}
+          variant="danger"
+          icon={LogOut}
+          onPress={handleLeaveGroup}
+          className="mt-6"
+        />
+      ) : null}
     </Screen>
   );
 }
