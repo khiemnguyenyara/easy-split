@@ -254,6 +254,15 @@ export const groupService = {
 
     if (splitsError) throw splitsError;
 
+    // 4a. Confirmed settlements — money already moved between members. Each one
+    // (debtor D paid creditor C amount X) pays down the live debt: it is applied
+    // to both the per-user net balances and the pairwise debts below.
+    const { data: confirmedSettlements } = await supabase
+      .from('debt_settlements')
+      .select('debtor_id, creditor_id, amount')
+      .eq('group_id', groupId)
+      .eq('status', 'confirmed');
+
     // Normalize the joined rows into the app's flattened shapes. Supabase types
     // to-one joins loosely, so we narrow via a local raw shape.
     const rawMembers = (membersData ?? []) as unknown as RawMemberRow[];
@@ -291,6 +300,14 @@ export const groupService = {
       if (split.user_id) {
         userBalances[split.user_id] = (userBalances[split.user_id] || 0) - split.share_amount;
       }
+    });
+
+    // A confirmed settlement moves money: the debtor owes less (+), the
+    // creditor is owed less (-). Net of all balances stays zero.
+    confirmedSettlements?.forEach((s) => {
+      const { debtor_id, creditor_id, amount } = s;
+      if (debtor_id) userBalances[debtor_id] = (userBalances[debtor_id] || 0) + amount;
+      if (creditor_id) userBalances[creditor_id] = (userBalances[creditor_id] || 0) - amount;
     });
 
     const exactBalances = members.map((m) => ({
@@ -340,6 +357,22 @@ export const groupService = {
       const sign = debtor === idLow ? 1 : -1;
       const key = `${idLow}|${idHigh}`;
       pairNet[key] = (pairNet[key] || 0) + sign * s.share_amount;
+    });
+
+    // Apply confirmed settlements to the pair, reducing the debtor→creditor debt
+    // toward zero. Clamped so an over-payment (or a settlement made in simplified
+    // mode against an indirect debt) can't flip the pair into a phantom reverse debt.
+    confirmedSettlements?.forEach((s) => {
+      const debtor = s.debtor_id ?? undefined;
+      const creditor = s.creditor_id ?? undefined;
+      if (!debtor || !creditor || debtor === creditor) return;
+      const idLow = debtor < creditor ? debtor : creditor;
+      const idHigh = debtor < creditor ? creditor : debtor;
+      const sign = debtor === idLow ? 1 : -1;
+      const key = `${idLow}|${idHigh}`;
+      // Current debt the debtor owes the creditor (>= 0 means a real debt to settle).
+      const debtorOwes = sign * (pairNet[key] || 0);
+      pairNet[key] = sign * Math.max(0, debtorOwes - s.amount);
     });
 
     const rawDebts: SimplifiedDebt[] = [];
@@ -419,12 +452,20 @@ export const groupService = {
 
     if (owesError) throw owesError;
 
+    // 3. Confirmed settlements involving the user — money already moved.
+    const { data: settlements, error: settlementsError } = await supabase
+      .from('debt_settlements')
+      .select('debtor_id, creditor_id, amount')
+      .eq('status', 'confirmed')
+      .or(`debtor_id.eq.${userId},creditor_id.eq.${userId}`);
+
+    if (settlementsError) throw settlementsError;
+
     // Net position per counterparty: positive => they owe the user, negative =>
     // the user owes them. Netted pairwise — the same model as the group
-    // dashboard (which derives balances from expenses/splits only, with no
-    // settlement adjustment). Deriving all three figures from these nets keeps
-    // them reconciled (totalBalance === owedToUser - userOwes) and makes the
-    // home total equal the sum of every group's balances.
+    // dashboard. Deriving all three figures from these nets keeps them reconciled
+    // (totalBalance === owedToUser - userOwes) and makes the home total equal the
+    // sum of every group's balances (settlements included, exactly as netBalances).
     const net: Record<string, number> = {};
     const bump = (id: string | null | undefined, delta: number) => {
       if (!id || id === userId) return;
@@ -437,6 +478,14 @@ export const groupService = {
 
     (userOwesSplits as RawOwesPayerRow[] | null)?.forEach((split) => {
       bump(firstOf(split.expenses)?.payer_id, -split.share_amount);
+    });
+
+    // A confirmed settlement pays down the live debt between the two parties.
+    settlements?.forEach((s) => {
+      // Debtor paid the user back → they owe the user less.
+      if (s.creditor_id === userId) bump(s.debtor_id, -s.amount);
+      // The user paid the creditor → the user owes them less.
+      else if (s.debtor_id === userId) bump(s.creditor_id, s.amount);
     });
 
     let owed = 0;
