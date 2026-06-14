@@ -11,7 +11,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Send, Image as ImageIcon, X } from 'lucide-react-native';
 import { supabase } from '../../../src/api/supabase';
 import { useAuthStore } from '../../../src/store/useAuthStore';
@@ -38,6 +38,7 @@ export default function ChatScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState('');
@@ -288,7 +289,10 @@ export default function ChatScreen() {
           </View>
         ) : null}
 
-        <View className="flex-row items-end gap-3 overflow-hidden border-t border-surface-line bg-surface-glass p-4">
+        <View
+          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+          className="flex-row items-end gap-3 overflow-hidden border-t border-surface-line bg-surface-glass px-4 pt-4"
+        >
           <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFillObject} />
           <TouchableOpacity
             onPress={handlePickImage}

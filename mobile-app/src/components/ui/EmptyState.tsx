@@ -2,7 +2,6 @@ import React from 'react';
 import { View } from 'react-native';
 import { LucideIcon } from 'lucide-react-native';
 import { useThemeColors } from '../../theme';
-import { GlassCard } from './GlassCard';
 import { GlassText } from './GlassText';
 import { Button } from './Button';
 
@@ -28,11 +27,7 @@ export const EmptyState = ({
 }: EmptyStateProps) => {
   const colors = useThemeColors();
   return (
-    <GlassCard
-      intensity={20}
-      className={`items-center justify-center border-dashed ${className}`}
-      padding="py-12 px-6"
-    >
+    <View className={`items-center justify-center py-12 px-6 ${className}`}>
       <View className="mb-6 h-16 w-16 items-center justify-center rounded-3xl border border-surface-line bg-surface-fill">
         <Icon size={32} color={colors.contentFaint} />
       </View>
@@ -49,6 +44,6 @@ export const EmptyState = ({
       ) : actionLabel && onAction ? (
         <Button title={actionLabel} onPress={onAction} className="mt-8 w-full" />
       ) : null}
-    </GlassCard>
+    </View>
   );
 };

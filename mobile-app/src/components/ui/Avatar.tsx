@@ -30,7 +30,7 @@ export const Avatar = ({
   return (
     <View
       className={`items-center justify-center rounded-full border border-surface-line ${s.box} ${
-        active ? 'bg-accent/20' : 'bg-surface-fill'
+        active ? 'bg-accent/20' : 'bg-white dark:bg-[#201D47]'
       } ${className}`}
       {...props}
     >

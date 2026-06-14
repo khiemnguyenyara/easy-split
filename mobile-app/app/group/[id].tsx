@@ -7,6 +7,7 @@ import {
   Alert,
   Image,
   Modal,
+  Text,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -257,9 +258,12 @@ export default function GroupDetailsScreen() {
             <IconButton icon={MessageCircle} onPress={() => router.push(`/group/${id}/chat`)} />
             {chatUnread > 0 ? (
               <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full border border-surface-glass bg-accent px-1">
-                <GlassText className="font-outfit-bold text-[10px] text-white">
+                <Text
+                  className="font-outfit-bold text-[10px] text-white text-center leading-none"
+                  style={{ includeFontPadding: false, textAlignVertical: 'center' }}
+                >
                   {chatUnread > 9 ? '9+' : chatUnread}
-                </GlassText>
+                </Text>
               </View>
             ) : null}
           </View>
@@ -335,14 +339,30 @@ export default function GroupDetailsScreen() {
 
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <View className="mr-3 flex-row -space-x-3">
-              {members.slice(0, 3).map((m, i) => (
-                <Avatar key={m.user_id} name={m.full_name} size="sm" style={{ zIndex: 10 - i }} />
+            <View className="mr-3 flex-row">
+              {members.slice(0, members.length > 3 ? 2 : 3).map((m, i) => (
+                <Avatar
+                  key={m.user_id}
+                  name={m.full_name}
+                  size="sm"
+                  style={{
+                    position: 'relative',
+                    marginLeft: i === 0 ? 0 : -16,
+                    zIndex: i + 1,
+                  }}
+                />
               ))}
               {members.length > 3 ? (
-                <View className="h-8 w-8 items-center justify-center rounded-full border border-surface-line bg-surface-fill">
-                  <GlassText className="font-outfit-bold text-[8px]">
-                    +{members.length - 3}
+                <View
+                  style={{
+                    position: 'relative',
+                    marginLeft: -16,
+                    zIndex: 3,
+                  }}
+                  className="h-8 w-8 items-center justify-center rounded-full border border-surface-line bg-white dark:bg-[#201D47]"
+                >
+                  <GlassText className="font-outfit-bold text-[9px]">
+                    +{members.length - 2}
                   </GlassText>
                 </View>
               ) : null}

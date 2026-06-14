@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, RefreshControl, Alert, TouchableOpacity } from 'react-native';
+import { View, RefreshControl, Alert, TouchableOpacity, Text } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -81,9 +81,12 @@ export default function HomeScreen() {
             <IconButton icon={Bell} onPress={() => router.push('/notifications')} />
             {unread > 0 ? (
               <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full border border-surface-glass bg-accent px-1">
-                <GlassText className="font-outfit-bold text-[10px] text-white">
+                <Text
+                  className="font-outfit-bold text-[10px] text-white text-center leading-none"
+                  style={{ includeFontPadding: false, textAlignVertical: 'center' }}
+                >
                   {unread > 9 ? '9+' : unread}
-                </GlassText>
+                </Text>
               </View>
             ) : null}
           </View>

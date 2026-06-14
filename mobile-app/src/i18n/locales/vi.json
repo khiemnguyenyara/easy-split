@@ -213,7 +213,7 @@
     "inviteMessage": "Tham gia nhóm \"{{name}}\" trên EasySplit bằng mã mời: {{code}}",
     "removeTitle": "Xóa thành viên",
     "removeConfirm": "Bạn có chắc muốn xóa {{name}} khỏi nhóm không?",
-    "listCount": "Danh sách ({{count}})",
+    "listCount": "Danh sách thành viên ({{count}})",
     "owner": "Trưởng nhóm",
     "member": "Thành viên",
     "shareInvite": "Mời bằng mã",
