@@ -17,10 +17,14 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../src/api/supabase';
 import { groupService } from '../../src/services/group.service';
 import { getGroupBgImage } from '../../src/utils/image';
-import { formatCurrency, formatDate, formatNumber, parseAmount, formatAmountInput } from '../../src/utils/format';
+import {
+  formatCurrency,
+  formatNumber,
+  parseAmount,
+  formatAmountInput,
+} from '../../src/utils/format';
 import { getErrorMessage } from '../../src/utils/error';
 import { simplifyDebts } from '../../src/utils/debts';
-import { EXPENSE_CATEGORY_IDS } from '../../src/constants';
 import {
   Settings,
   Receipt,
@@ -459,9 +463,7 @@ export default function GroupDetailsScreen() {
           {expenses.length === 0 ? (
             <EmptyState icon={Receipt} title={t('groupDetail.noExpenses')} />
           ) : (
-            expenses.map((expense) => (
-              <ExpenseCard key={expense.expense_id} expense={expense} />
-            ))
+            expenses.map((expense) => <ExpenseCard key={expense.expense_id} expense={expense} />)
           )}
         </View>
       ) : null}
@@ -765,7 +767,8 @@ export default function GroupDetailsScreen() {
             </View>
 
             <GlassText variant="body" className="mb-4 text-content-muted">
-              {t('groupDetail.payTo')}: <GlassText className="font-outfit-bold text-content">{paymentCreditorName}</GlassText>
+              {t('groupDetail.payTo')}:{' '}
+              <GlassText className="font-outfit-bold text-content">{paymentCreditorName}</GlassText>
             </GlassText>
 
             <Input
