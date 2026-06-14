@@ -1,171 +1,361 @@
-# EasySplit: Group Expense Tracker
+# 🚀 EasySplit: Group Expense Tracker & Debt Settler
 
-EasySplit is a mobile application designed for debt-splitting and group expense management, optimized specifically for Vietnamese users. It simplifies the process of tracking shared costs and settling debts within various groups.
+EasySplit is a premium, feature-rich mobile application designed for seamless group expense tracking, debt simplification, and shared savings funds. The application is specifically optimized for Vietnamese users, featuring automatic language detection (English/Vietnamese), custom VNĐ formatting, and an elegant **"Sunrise Glass" UI** design language.
 
-## Core Features
+It leverages a modern BaaS (Backend-as-a-Service) model with **React Native (Expo SDK 55)** on the frontend and **Supabase (PostgreSQL)** on the backend.
 
-- **Group Management**: Create groups and invite members via unique invite codes.
-- **Expense Logging**: Log expenses with descriptions, categories, and image receipts.
-- **Automated Debt Calculation**: Automatically calculate who owes whom based on expense splits.
-- **Debt Settlement**: Facilitate settlements with proof of transfer (images) and creditor confirmation.
-- **Group Statistics**: Per-member spending and contribution charts for each group.
-- **Group Funds**: Pool money toward shared goals and track member contributions.
-- **Group Chat**: In-group messaging with image attachments.
-- **Internationalization (i18n)**: Full English / Vietnamese support, auto-detecting the device locale and switchable in Settings.
-- **Theming**: Light / Dark / System appearance modes.
+---
 
-## System Architecture
+## 📖 Table of Contents
 
-The application follows a modern mobile-client to backend-as-a-service architecture.
+1. [Key Features](#-key-features)
+2. [Aesthetics & Design System ("Sunrise Glass")](#-aesthetics--design-system-sunrise-glass)
+3. [System Architecture](#-system-architecture)
+4. [Folder Structure](#-folder-structure)
+5. [Database Schema & Logic](#-database-schema--logic)
+    - [Database Relational Model](#database-relational-model)
+    - [Row-Level Security (RLS) Policies](#row-level-security-rls-policies)
+    - [Database Functions & Triggers](#database-functions--triggers)
+6. [Core Technical Implementations](#-core-technical-implementations)
+    - [Precision Split Engine (Largest Remainder Method)](#1-precision-split-engine-largest-remainder-method)
+    - [Secure Storage Adapter (Token Chunking)](#2-secure-storage-adapter-token-chunking)
+    - [Biometric Shield Lock](#3-biometric-shield-lock)
+    - [Greedy Debt Netting Algorithm](#4-greedy-debt-netting-algorithm)
+7. [Local Setup & Installation](#-local-setup--installation)
+    - [Prerequisites](#prerequisites)
+    - [Backend Setup (Supabase CLI)](#backend-setup-supabase-cli)
+    - [Frontend Setup (Expo Client)](#frontend-setup-expo-client)
+8. [Developer Workflow & Naming Conventions](#-developer-workflow--naming-conventions)
+
+---
+
+## ✨ Key Features
+
+EasySplit organizes its features into 5 distinct epics:
+
+### 1. Identity, Access, & Security (EPIC 1)
+- **Email/Password Auth**: Handled securely via Supabase Auth.
+- **Biometric Shield**: Opt-in app lock using Face ID / Touch ID hardware (`expo-local-authentication`). Re-locks the application instantly when backgrounded or inactive.
+- **Secure Token Chunking**: Custom storage adapter solving the OS-level 2KB storage limit for SecureStore.
+- **Dynamic Localization (i18n)**: English/Vietnamese language toggle. Automatically detects device system locale via Hermes `Intl` API on startup.
+
+### 2. Group Management & Administration (EPIC 1 & 2)
+- **Group Creation**: Set name, description, custom cover picture, and budget limits.
+- **Unique Invite Codes**: Generates 6-character unique codes for member lookup. Joining uses a database RPC (`join_group_by_code`) to bypass read restrictions securely.
+- **Add Members Directly**: Search users in the app by name/email (excluding existing members) and add them instantly.
+- **Zero-Balance Safety Checks**: Admins can remove members and members can leave groups *only* if their outstanding net balance is exactly zero, ensuring no debts are orphaned.
+
+### 3. Core Expense Engine & Global Feed (EPIC 2)
+- **Multi-Category Expenses**: Organize expenses under *Food, Coffee, Transport, Shopping, or Others*.
+- **Receipt Images**: Attach photo receipts uploaded directly to Supabase Storage.
+- **Global History Feed**: A consolidated timeline aggregating transactions across all groups the user belongs to.
+- **Precision Splitting**: Even split distribution calculation utilizing the *Largest Remainder Method* to avoid rounding leaks.
+
+### 4. Smart Settlements & Netting (EPIC 3)
+- **Greedy Netting (`simplifyDebts`)**: Opt-in debt netting algorithm minimizing the number of transfer transactions between members.
+- **2-Step Verification**: Debtors submit proof of payment (screenshot) -> Creditors receive notifications -> Creditors verify and confirm the receipt to clear the debt.
+
+### 5. Group Shared Funds & Real-Time Chats (EPIC 3 & 4)
+- **Piggy Bank Goal**: Create co-contribution savings targets with progress bars. Members deposit money with proof -> Admin approves -> Fund progress updates.
+- **Real-Time Group Chat**: Instant messages with image attachments, synchronized over a WebSocket subscription channel.
+- **Triggered In-App Notifications**: Real-time notifications for new expenses, chat messages, and settlements generated at the database level.
+
+---
+
+## 🎨 Aesthetics & Design System ("Sunrise Glass")
+
+The visual interface is built upon a cohesive **"Sunrise Glass"** theme. Rather than plain inputs or simple lists, EasySplit utilizes a playful, organic glassmorphism feel:
+
+- **Mesh Background**: A full-screen mesh gradient (`MeshBackground.tsx`) transitioning from Deep Indigo (`#2E3192`) to Dark Violet (`#1B1464`).
+- **Accent Elements**: Sunset Coral gradients (`#FF512F` to `#DD2476`) indicating main actions.
+- **Frosted Glass Cards (`GlassCard.tsx`)**: Translucent cards with subtle white borders, leveraging `expo-blur` to blend card content on top of the moving mesh background.
+- **Typography**: Uses the Google geometric font **"Outfit"** for headers and body segments, creating a friendly and modern aesthetic.
+
+---
+
+## 🛠 System Architecture
+
+The application is structured as a client-to-backend-as-a-service architecture:
 
 ```mermaid
 graph TD
-    User((User))
-    App[Mobile App - Expo]
-    Supabase[Supabase Backend]
-    DB[(PostgreSQL)]
-    Auth[Supabase Auth]
-    Storage[Supabase Storage]
-    Functions[Edge Functions]
+    User((User Client))
+    
+    subgraph Mobile Client - Expo & React Native
+        UI[UI Layers & Tailwind CSS]
+        Hooks[Custom React Hooks]
+        Zustand[Zustand Stores - Auth, i18n, Lock]
+        API[Supabase Client & Storage Adapters]
+    end
 
-    User <--> App
-    App <--> Auth
-    App <--> DB
-    App <--> Storage
-    App <--> Functions
-    Functions <--> DB
+    subgraph Supabase BaaS - Backend Cloud
+        Auth[Supabase Auth]
+        DB[(PostgreSQL Database)]
+        Storage[Supabase Storage Buckets]
+        Realtime[Realtime Subscriptions - WebSocket]
+    end
+
+    User <--> UI
+    UI <--> Hooks
+    Hooks <--> Zustand
+    Hooks <--> API
+    API <--> Auth
+    API <--> DB
+    API <--> Storage
+    API <--> Realtime
 ```
 
-## Tech Stack
+---
 
-### Frontend
-- **Framework**: React Native (Expo)
-- **Routing**: Expo Router
-- **Styling**: NativeWind (Tailwind CSS)
-- **State Management**: Zustand
-- **Localization**: i18next + react-i18next (en / vi); device-locale detection via the Hermes `Intl` API (no native module required)
-
-### Backend (Supabase)
-- **Database**: PostgreSQL
-- **Authentication**: Supabase Auth
-- **Storage**: Supabase Storage (Receipts & Proof of Transfer)
-- **Serverless Logic**: Supabase Edge Functions
-
-## Database Schema
-
-The database consists of the following primary entities:
-
-| Table | Description |
-| :--- | :--- |
-| `profiles` | User profile information (Linked to Supabase Auth). |
-| `groups` | Expense groups created by users. |
-| `group_members` | Junction table for group membership and roles. |
-| `expenses` | Recorded expenses within a group. |
-| `expense_splits` | Breakdown of how an expense is divided among members. |
-| `debt_settlements` | Records of debt payments and their status. |
-| `categories` | Expense categories (optionally scoped per group). |
-| `fundings` | Group shared funds with a target amount. |
-| `fund_contributions` | Member contributions toward a fund (with proof + status). |
-| `messages` | Group chat messages. |
-| `media` | Attachments linked to messages. |
-| `notifications` | Per-user in-app notifications (used by the upcoming push/notifications work). |
-
-### Relationships
-
-- `profiles (user_id)` -> `auth.users (id)`
-- `group_members (user_id)` -> `profiles (user_id)`
-- `group_members (group_id)` -> `groups (group_id)`
-- `expenses (group_id)` -> `groups (group_id)`
-- `expenses (payer_id)` -> `profiles (user_id)`
-- `expense_splits (expense_id)` -> `expenses (expense_id)`
-- `expense_splits (user_id)` -> `profiles (user_id)`
-- `debt_settlements (group_id)` -> `groups (group_id)`
-- `debt_settlements (debtor_id)` -> `profiles (user_id)`
-- `debt_settlements (creditor_id)` -> `profiles (user_id)`
-
-## Folder Structure
+## 📁 Folder Structure
 
 ```text
 .
-├── mobile-app/
-│   ├── app/            # Expo Router screens (File-based routing)
+├── backend/                   # Reference Mock Backend Module (MVC Pattern)
 │   ├── src/
-│   │   ├── api/        # Supabase client and API call definitions
-│   │   ├── components/ # Reusable UI components
-│   │   ├── store/      # Zustand store definitions
-│   │   ├── hooks/      # Custom React hooks
-│   │   └── types/      # TypeScript type definitions
-│   └── ...
-└── supabase/
-    ├── migrations/     # SQL schema and database migrations
-    ├── functions/      # Edge Functions for complex server-side logic
-    └── ...
+│   │   ├── common/            # Abstractions (Guards, interfaces)
+│   │   └── modules/groups/    # Group Controller, Service, Repository, Model
+│   └── tsconfig.json          # Compiler configs for mock backend
+├── supabase/                  # Supabase Server Setup
+│   ├── migrations/            # SQL Schemas and migrations (Tables, RLS, Triggers)
+│   ├── config.toml            # CLI configurations
+│   └── seed.sql               # Database seed scripts
+└── mobile-app/                # Mobile Client Application (React Native / Expo)
+    ├── app/                   # Expo Router Screen Layout
+    │   ├── (auth)/            # Auth routes (login, register)
+    │   ├── (tabs)/            # Main tab navigators (Home, Debts, Expenses, Settings)
+    │   ├── group/             # Group detailed dashboard & subroutes
+    │   │   ├── [id].tsx       # Group Tabs (Expenses, Settlements, Funds)
+    │   │   └── [id]/          # Add-expense, add-member, chat, stats, members
+    │   ├── settings/          # Profiles, Appearance, Security (Lock), Localization
+    │   └── _layout.tsx        # Root entry (biometric shield, font loading)
+    └── src/
+        ├── api/               # Supabase Client & Storage Adapters
+        ├── components/ui/     # Design system primitives (GlassCard, MeshBackground, etc.)
+        ├── hooks/             # Encapsulated state and business logic hooks
+        ├── i18n/              # Dynamic language translation configs
+        ├── store/             # Zustand global state (Auth, Theme, Locale, Security)
+        ├── utils/             # Calculation formatting and debt simplifying algorithms
+        └── types/             # TypeScript types
 ```
 
-## Naming Conventions
+### Essential UI Primitives
+Located under `mobile-app/src/components/ui/`:
+- **`MeshBackground.tsx`**: Renders the core moving mesh colors behind screens.
+- **`GlassCard.tsx`**: Container using `BlurView` with border shadows to create frosted glass surfaces.
+- **`GlassText.tsx`**: Auto-styled text suited for transclucent cards.
+- **`ProgressBar.tsx`**: Dynamic progress gauge used in budgets and shared fund trackers.
+- **`OptionPill.tsx`**: Custom selection capsule used in category filters and splitting selections.
 
-- **Frontend (Mobile App)**: `CamelCase` for components and files, `camelCase` for variables and functions.
-- **Database (Supabase)**: `snake_case` for table names, column names, and functions.
+---
 
-## Business Rules
+## 🗄 Database Schema & Logic
 
-1.  **Mandatory Profiles**: Every user must have a record in the `profiles` table, typically triggered by successful Supabase Authentication.
-2.  **Expense Splitting**: Expenses must be split among group members. The sum of splits must equal the total expense amount.
-3.  **Settlement Confirmation**: A debt settlement remains in a pending state until the creditor explicitly confirms receipt of payment.
+EasySplit is supported by 12 PostgreSQL tables in the public schema of the database.
 
-## Feature Status & Roadmap
+### Database Relational Model
 
-Tracking the remediation of UI surfaces that previously had no working flow ("dead flows"). Work is sequenced into batches by risk/impact.
+```mermaid
+erDiagram
+    profiles ||--o{ group_members : participates
+    groups ||--o{ group_members : holds
+    profiles ||--o{ expenses : pays
+    groups ||--o{ expenses : contains
+    expenses ||--o{ expense_splits : divides
+    profiles ||--o{ expense_splits : owes
+    groups ||--o{ debt_settlements : registers
+    profiles ||--o{ debt_settlements : debtor
+    profiles ||--o{ debt_settlements : creditor
+    groups ||--o{ fundings : targets
+    fundings ||--o{ fund_contributions : collects
+    profiles ||--o{ fund_contributions : contributes
+    groups ||--o{ messages : holds
+    profiles ||--o{ messages : sends
+    messages ||--o{ media : attaches
+    expenses ||--o{ media : attaches
+    profiles ||--o{ notifications : receives
+```
 
-### ✅ Batch 1 — Quick wins (done, frontend-only)
-- **Statistics screen wired up**: added a chart button to the group header → `/group/[id]/stats` (screen existed but was unreachable).
-- **Group funds wired up**: the group "Funds" tab now opens the real fund-management screen instead of a "coming soon" placeholder.
-- **Expense category persisted**: the category picker in *Add expense* now saves the selected category to `expenses.category` (was hard-coded to `others`).
-- **Removed "Rate the app"** no-op row from Help.
-- **Removed the fake "Online" status** in group chat.
+#### Table Definitions
+1. **`profiles`**: Stores user information. Linked 1:1 to Supabase `auth.users` through `user_id`.
+2. **`groups`**: Expense groups containing unique 6-character `invite_code`.
+3. **`group_members`**: Junction table for membership tracking. Roles include `'admin'` or `'member'`.
+4. **`expenses`**: Holds cost transactions logged inside a group.
+5. **`expense_splits`**: Breakdown of how an expense is divided among members (`share_amount`).
+6. **`debt_settlements`**: Tracks payments made to settle debt. Statuses: `'unpaid'`, `'pending'`, `'confirmed'`.
+7. **`categories`**: Defines category attributes (emoji icons and text).
+8. **`fundings`**: Groups' shared savings goals.
+9. **`fund_contributions`**: Track member deposits to specific piggy bank fundings with confirmation proof.
+10. **`messages`**: Real-time group chat logs.
+11. **`media`**: Attachments (images) linked to chat messages or expenses.
+12. **`notifications`**: System event logs for user notification feeds.
 
-Post-test fixes:
-- Member names rendered as `undefined` on the Statistics / Members screens — the service now flattens the joined profile so every consumer reads `member.full_name` directly.
-- The saved expense category is now shown in the group's transaction history so it is verifiable in-app.
-- **Funds feature reconciled & completed**:
-  - Schema drift fixed — the manually-created `fundings`/`fund_contributions` tables (which used `title` instead of `name` and lacked columns) are recreated cleanly in migration `20260317000000`; missing INSERT/UPDATE RLS policies were added so creating funds and contributions actually works.
-  - Storage bucket `attachments` (+ policies) created in migration `20260318000000` — fixed "Bucket not found" on proof uploads.
-  - Fund list now refetches on screen focus + pull-to-refresh, so a newly created fund always appears.
-  - Admin (group creator) can now **confirm** pending contributions (`20260319000000` adds the update policy); a fund's progress / current amount is computed from confirmed contributions.
+---
 
-> Migration lesson learned: never edit an already-applied migration (the CLI skips it) and avoid `CREATE TABLE IF NOT EXISTS` for tables that may already exist in a different shape — add follow-up migrations with `ALTER ... ADD COLUMN IF NOT EXISTS` / `DROP POLICY IF EXISTS` instead, and reload the PostgREST cache (`NOTIFY pgrst, 'reload schema';`) after schema changes.
+### Row-Level Security (RLS) Policies
+All database tables strictly enable Row-Level Security. Data accesses are scoped through group membership or owner IDs:
 
-### ✅ Batch 2 — Frontend + light auth (done)
-- **Group budget** — the group overview shows a spent-vs-budget bar (turning red when exceeded) and is now **settable/editable in-place**: groups without a budget show a "Set group budget" prompt; tapping an existing bar lets you edit it (persists to `groups.budget_amount`).
-- **"Add member" → share invite code** — the Members header button now opens the native share sheet with the group's invite code.
-- **Forgot password** — the login "Forgot?" link sends a reset email via `supabase.auth.resetPasswordForEmail`.
-- **Biometric app-lock** — `expo-local-authentication` + `useSecurityStore` (preference in SecureStore). Toggle in Security settings; the app shows a lock screen (Face ID / fingerprint) on launch and whenever it returns from the background. **Requires a dev-client rebuild** (new native module): `npx expo prebuild -p ios && npx expo run:ios`.
+- **`profiles`**: Select: Any authenticated user. Insert/Update: Allowed only if `auth.uid() = user_id`.
+- **`groups`**: Select: Only group creators or members. Insert: Creator only. Update: Group members only.
+- **`group_members`**: Select: Group members only. Insert: Users adding themselves by code, or group admins adding search results. Delete: Admins can remove other members, or users can delete themselves (leave).
+- **`expenses`**: Select/Insert: Group members only. Update/Delete: Payer only.
+- **`expense_splits`**: Select: Group members. Insert/Update/Delete: Payer of the associated expense.
+- **`debt_settlements`**: Select/Insert: Group members. Update: Creditor/debtor only (with creditor confirming status).
+- **`fundings` / `fund_contributions`**: Select/Insert: Group members. Update: Allowed for admins to confirm contribution deposits.
+- **`messages` / `media`**: Select/Insert: Group members only.
+- **`notifications`**: Select/Update: Receiver only (`auth.uid() = user_id`).
 
-### ✅ Batch 3 — Requires DB / RLS (done)
-- **Remove member** — real delete from `group_members`, gated to the group owner in the UI and enforced by a new owner-only DELETE RLS policy (`20260320000000`). The owner cannot remove themselves.
-- **Global Expenses tab** — the center tab now lists every expense across all of the user's groups (RLS-scoped), newest first, tapping an item opens its group. (`getUserExpensesFeed` + `useExpensesFeed`.)
-- **Global Debts tab** — un-hidden in the tab bar (the deferred Notifications tab took its place; see note); shows aggregated owed/owe totals plus a per-group net breakdown. (`getUserDebtsByGroup` + `useDebtsOverview`.)
-- Fixed a settlement-status mismatch: balance math now counts `confirmed` settlements (the app never writes `paid`), so confirmed payments correctly reduce balances on the Home and Debts screens.
+---
 
-> Tab bar note: the bottom bar keeps 5 slots with the center FAB. Since the Notifications tab (#15) is deferred, it was hidden (`href: null`) and the new **Debts** tab took its place. Notifications returns to the bar when its feature ships in Batch 4.
+### Database Functions & Triggers
 
-### 🔄 Batch 4 — Infrastructure (in progress)
-- ✅ **Terms of Service & Privacy Policy** — drafted in-app (no external hosting): bilingual content in `src/content/legal.ts`, shown on `app/settings/legal.tsx` (Terms/Privacy toggle), linked from the Help screen. Placeholders ([date], [Company]) and a "get legal review" note remain.
-- ✅ **In-app notifications** — DB triggers (`20260321000000`) write rows into the `notifications` table on key events (new expense → other members; settlement submitted → creditor; settlement confirmed → debtor). A new top-level `app/notifications.tsx` screen renders them (localized from `data.type`, unread highlighting, mark-read on leave); the Home header has a bell with an unread badge. No device / Edge Function / rebuild required.
-- ⏳ **Push-to-device** (`expo-notifications` + `profiles.expo_push_token` + Edge Function) — deferred until a physical iOS device is available; it layers on top of the in-app notifications already wired here.
-- Full forgot-password deep-link screen; optional 2FA via Supabase MFA (TOTP) (deferred).
+To automate server tasks and bypass client restrictions securely, custom PostgreSQL triggers and Security Definer RPC functions are set up:
 
-> Deferred to a later enhancement pass: persisting notification-preference toggles, the static "notifications on" label, and presence/online status.
+#### 1. Automatic Profile Population
+Fires after a user successfully registers through Supabase Auth, copying details into `public.profiles`.
+```sql
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+```
 
-## Setup Instructions
+#### 2. RLS Bypass for Invitation Codes
+Because non-members cannot read group lists to search invite codes, the `join_group_by_code(i_code)` RPC runs as a `SECURITY DEFINER` database function to query the code and add the member.
+
+#### 3. Automatic Notification Triggers
+- **`trg_notify_on_expense`**: Inserts a notification row for all group members (except the payer) when an expense is added.
+- **`trg_notify_on_settlement`**: On payment submission, notifies the creditor. On confirmation (`status -> confirmed`), notifies the debtor.
+- **`trg_notify_on_message`**: Notifies all other group members of a new chat message to update unread badge counts.
+
+---
+
+## ⚙️ Core Technical Implementations
+
+### 1. Precision Split Engine (Largest Remainder Method)
+Standard floating-point divisions run risk of rounding leaks (e.g. dividing 100,000 VNĐ by 3 equals 33,333.333...). To prevent any drift, splits are distributed using integer division:
+```typescript
+const n = splitPlayers.length;
+const base = Math.floor(amountValue / n);
+let remainder = amountValue - base * n;
+const splits = splitPlayers.map((userId) => ({
+  expense_id: expense.expense_id,
+  user_id: userId,
+  share_amount: base + (remainder-- > 0 ? 1 : 0),
+}));
+```
+This distributes the remainder đồng by đồng to initial members, ensuring that the sum of splits matches the total amount exactly.
+
+### 2. Secure Storage Adapter (Token Chunking)
+On mobile devices, `expo-secure-store` imposes a strict size limit of approximately 2048 bytes per item. Since Supabase auth tokens (JWTs) can easily exceed this limit, the `ExpoSecureStoreAdapter` splits tokens into chunks:
+- If a value exceeds 1900 bytes, it divides it into segments (`key__0`, `key__1`, ...) and updates a metadata pointer (`key__chunks`).
+- Re-reads reconstruct the string seamlessly. This prevents login states from dropping.
+
+### 3. Biometric Shield Lock
+The biometric lock uses `expo-local-authentication` wrapped in a Zustand store. Re-locking behaves defensively:
+- During startup, `hydrate()` sets a listener on `AppState`.
+- If the AppState transitions to `background` or `inactive`, `locked` sets to `true`.
+- On return, a screen-wide `<LockScreen />` overlays the UI, requiring Face ID / Touch ID authentication to proceed.
+
+### 4. Greedy Debt Netting Algorithm
+To reduce settlement friction, the `simplifyDebts` utility maps net balances (who owes how much) into the minimal set of transfer actions.
+- Resolves positive credits and negative debts in a greedy fashion.
+- The algorithm processes the highest creditor and highest debtor first, adjusting balances iteratively:
+```typescript
+while (c < creditors.length && d < debtors.length) {
+  const amount = Math.min(creditors[c].amount, debtors[d].amount);
+  result.push({
+    from_id: debtors[d].user_id,
+    from_name: debtors[d].full_name,
+    to_id: creditors[c].user_id,
+    to_name: creditors[c].full_name,
+    amount: Math.round(amount),
+  });
+  creditors[c].amount -= amount;
+  debtors[d].amount -= amount;
+  if (creditors[c].amount < 1) c++;
+  if (debtors[d].amount < 1) d++;
+}
+```
+
+---
+
+## 🚀 Local Setup & Installation
 
 ### Prerequisites
-- Node.js (v18+)
-- Supabase CLI
-- Expo CLI
+- [Node.js](https://nodejs.org/) (v18+)
+- [Yarn](https://yarnpkg.com/)
+- [Supabase CLI](https://supabase.com/docs/guides/cli)
+- Docker (required to run local Supabase containers)
 
-### Local Development
-1. Clone the repository.
-2. Install dependencies: `cd mobile-app && npm install`.
-3. Configure environment variables (create `.env` in `mobile-app/`).
-4. Start the dev server: `npx expo start`.
+---
+
+### Backend Setup (Supabase CLI)
+
+1. **Start the local Supabase containers**:
+   Ensure Docker is running, then navigate to the root directory and start Supabase:
+   ```bash
+   supabase start
+   ```
+
+2. **Execute Database Migrations & Seeds**:
+   Run database migrations to initialize tables, RLS rules, and triggers, and seed mock test data:
+   ```bash
+   supabase db reset
+   ```
+   *Note: This automatically runs all migrations under `supabase/migrations/` and seeding data in `supabase/seed.sql`.*
+
+3. **Get API Keys**:
+   The output of `supabase start` provides your local keys. Note the `API URL` and `anon key` to add to your environment files.
+
+---
+
+### Frontend Setup (Expo Client)
+
+1. **Install Dependencies**:
+   Navigate to the client folder and run installation:
+   ```bash
+   cd mobile-app
+   yarn install
+   ```
+
+2. **Configure Environment Variables**:
+   Create a `.env` file inside `mobile-app/`:
+   ```env
+   EXPO_PUBLIC_SUPABASE_URL=http://<YOUR_LOCAL_IP>:54321
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=<YOUR_LOCAL_ANON_KEY>
+   ```
+   *Note: On physical devices using Expo Go, replace `localhost` or `127.0.0.1` with your machine's local IP address (e.g. `192.168.1.50`) so the phone can connect to the local server.*
+
+3. **Start the Expo Server**:
+   Start the metro dev server:
+   ```bash
+   yarn start --reset-cache
+   ```
+
+4. **Launch the Application**:
+   - Press **`i`** to open on iOS Simulator.
+   - Press **`a`** to open on Android Emulator.
+   - Scan the QR code with your phone (using Camera app on iOS or Expo Go on Android) to run on a physical device.
+
+---
+
+## 🛠 Developer Workflow & Naming Conventions
+
+To keep codebases uniform and prevent styling regressions, follow these guidelines:
+
+### Naming Schemes
+- **Database (PostgreSQL)**: Use `snake_case` for table names, columns, functions, and triggers (e.g. `expense_splits`, `join_group_by_code`).
+- **Frontend (Mobile-App)**: Use `CamelCase` for components, views, and pages. Use `camelCase` for hooks, helper functions, variables, and Zustand state attributes.
+
+### Row-Level Security Rules
+When introducing new tables, always explicitly enable RLS:
+```sql
+ALTER TABLE public.<table_name> ENABLE ROW LEVEL SECURITY;
+```
+Create policies restricting reads/writes based on group membership (`public.is_member_of(group_id)`).
+
+### Localization Updates
+EasySplit does not use hardcoded strings for UI titles or text. To add copy content:
+1. Update English translations in `mobile-app/src/i18n/locales/en.json`.
+2. Update Vietnamese translations in `mobile-app/src/i18n/locales/vi.json`.
+3. Reference keys using `t('key.subkey')` in components.
