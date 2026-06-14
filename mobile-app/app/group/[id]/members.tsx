@@ -2,7 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, Alert, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, UserMinus, Shield, ShieldCheck, Share2, LogOut } from 'lucide-react-native';
+import { UserPlus, UserMinus, Shield, ShieldCheck, Share2, LogOut, Trash2 } from 'lucide-react-native';
 import { supabase } from '../../../src/api/supabase';
 import { useAuthStore } from '../../../src/store/useAuthStore';
 import { useGroupDetails } from '../../../src/hooks/useGroupDetails';
@@ -24,10 +24,15 @@ export default function MembersScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuthStore();
-  const { group, members, loading, fetchData } = useGroupDetails(id);
+  const { group, members, netBalances, loading, fetchData } = useGroupDetails(id);
 
   const groupId = Array.isArray(id) ? id[0] : id;
   const isOwnerUser = !!group && group.created_by === user?.id;
+
+  // Outstanding net balance for a member (đồng); ~0 means fully settled up.
+  // Leaving/removing while non-zero would orphan the debt and corrupt the
+  // group's balances (which must sum to zero), so we block it.
+  const balanceOf = (userId?: string) => netBalances.find((b) => b.user_id === userId)?.amount ?? 0;
 
   if (loading) return <Loader fullscreen />;
 
@@ -46,6 +51,13 @@ export default function MembersScreen() {
   };
 
   const handleRemoveMember = (member: { user_id: string; full_name: string | null }) => {
+    if (Math.abs(balanceOf(member.user_id)) >= 1) {
+      Alert.alert(
+        t('members.cannotRemoveTitle'),
+        t('members.cannotRemoveDebt', { name: member.full_name || t('common.user') })
+      );
+      return;
+    }
     Alert.alert(
       t('members.removeTitle'),
       t('members.removeConfirm', { name: member.full_name || t('common.user') }),
@@ -75,6 +87,10 @@ export default function MembersScreen() {
   const handleLeaveGroup = () => {
     const userId = user?.id;
     if (!userId) return;
+    if (Math.abs(balanceOf(userId)) >= 1) {
+      Alert.alert(t('members.cannotLeaveTitle'), t('members.cannotLeaveDebt'));
+      return;
+    }
     Alert.alert(
       t('members.leaveTitle'),
       t('members.leaveConfirm', { name: group?.group_name || t('common.group') }),
@@ -90,6 +106,32 @@ export default function MembersScreen() {
                 .delete()
                 .eq('group_id', groupId)
                 .eq('user_id', userId);
+              if (error) throw error;
+              router.replace('/(tabs)/groups');
+            } catch (error) {
+              Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteGroup = () => {
+    Alert.alert(
+      t('members.deleteTitle'),
+      t('members.deleteConfirm', { name: group?.group_name || t('common.group') }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('groups')
+                .delete()
+                .eq('group_id', groupId);
               if (error) throw error;
               router.replace('/(tabs)/groups');
             } catch (error) {
@@ -176,7 +218,15 @@ export default function MembersScreen() {
         </GlassText>
       </GlassCard>
 
-      {!isOwnerUser ? (
+      {isOwnerUser ? (
+        <Button
+          title={t('members.deleteButton')}
+          variant="danger"
+          icon={Trash2}
+          onPress={handleDeleteGroup}
+          className="mt-6"
+        />
+      ) : (
         <Button
           title={t('members.leaveButton')}
           variant="danger"
@@ -184,7 +234,7 @@ export default function MembersScreen() {
           onPress={handleLeaveGroup}
           className="mt-6"
         />
-      ) : null}
+      )}
     </Screen>
   );
 }

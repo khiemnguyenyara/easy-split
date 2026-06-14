@@ -125,7 +125,7 @@ export default function FundManagementScreen() {
       setTargetAmount('');
       fetchData();
     } catch (error) {
-      Alert.alert(t('common.error'), getErrorMessage(error));
+      Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
     } finally {
       setSubmitting(false);
     }
@@ -144,7 +144,7 @@ export default function FundManagementScreen() {
       base64: true,
     });
 
-    if (result.canceled || !result.assets[0].base64) return;
+    if (result.canceled || !result.assets?.length || !result.assets[0].base64) return;
 
     setSubmitting(true);
     try {
@@ -175,7 +175,7 @@ export default function FundManagementScreen() {
       Alert.alert(t('common.success'), t('fund.contributed'));
       fetchData();
     } catch (error) {
-      Alert.alert(t('common.error'), getErrorMessage(error));
+      Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
     } finally {
       setSubmitting(false);
     }
@@ -224,7 +224,7 @@ export default function FundManagementScreen() {
       Alert.alert(t('common.success'), t('fund.confirmedContribution'));
       fetchData();
     } catch (error) {
-      Alert.alert(t('common.error'), getErrorMessage(error));
+      Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
     } finally {
       setSubmitting(false);
     }

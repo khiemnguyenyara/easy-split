@@ -169,7 +169,7 @@ export default function GroupDetailsScreen() {
       quality: 0.5,
       base64: true,
     });
-    if (result.canceled || !result.assets[0].base64) return;
+    if (result.canceled || !result.assets?.length || !result.assets[0].base64) return;
 
     setSettling(true);
     try {
@@ -197,7 +197,7 @@ export default function GroupDetailsScreen() {
       Alert.alert(t('common.success'), t('settlement.proofUploaded'));
       fetchData();
     } catch (error) {
-      Alert.alert(t('common.error'), getErrorMessage(error));
+      Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
     } finally {
       setSettling(false);
     }
@@ -217,7 +217,7 @@ export default function GroupDetailsScreen() {
       Alert.alert(t('common.success'), t('settlement.confirmedPay'));
       fetchData();
     } catch (error) {
-      Alert.alert(t('common.error'), getErrorMessage(error));
+      Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
     } finally {
       setSettling(false);
     }

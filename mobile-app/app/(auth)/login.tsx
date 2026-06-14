@@ -71,7 +71,7 @@ export default function LoginScreen() {
           <View className="mb-8 items-center">
             <Image
               source={require('../../assets/easy-split-logo.png')}
-              style={{ width: 128, height: 128 }}
+              style={{ width: 128, height: 128, borderRadius: 100 }}
               resizeMode="contain"
             />
           </View>

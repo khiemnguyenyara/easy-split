@@ -221,8 +221,15 @@
     "leaveTitle": "Rời nhóm",
     "leaveConfirm": "Bạn có chắc muốn rời khỏi nhóm \"{{name}}\" không?",
     "leaveAction": "Rời nhóm",
+    "cannotLeaveTitle": "Cần thanh toán trước",
+    "cannotLeaveDebt": "Bạn vẫn còn dư nợ chưa thanh toán trong nhóm này. Vui lòng tất toán hết trước khi rời nhóm.",
+    "cannotRemoveTitle": "Cần thanh toán trước",
+    "cannotRemoveDebt": "{{name}} vẫn còn dư nợ chưa thanh toán. Hãy tất toán hết trước khi xoá thành viên này.",
     "rulesTitle": "Quy định nhóm",
-    "rulesDesc": "Chỉ trưởng nhóm mới có quyền xóa thành viên hoặc thay đổi các thiết lập quan trọng của nhóm. Tất cả thành viên đều có thể thêm chi tiêu mới."
+    "rulesDesc": "Chỉ trưởng nhóm mới có quyền xóa thành viên hoặc thay đổi các thiết lập quan trọng của nhóm. Tất cả thành viên đều có thể thêm chi tiêu mới.",
+    "deleteButton": "Xóa nhóm",
+    "deleteTitle": "Xóa nhóm",
+    "deleteConfirm": "Bạn có chắc chắn muốn xóa nhóm \"{{name}}\" không? Toàn bộ dữ liệu chi tiêu, thành viên và các khoản nợ liên quan sẽ bị xóa vĩnh viễn."
   },
   "addMember": {
     "title": "Thêm thành viên",

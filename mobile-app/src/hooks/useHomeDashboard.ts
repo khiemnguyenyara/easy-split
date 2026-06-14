@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { groupService } from '../services/group.service';
-import { GroupData, useGroupList } from './useGroupList';
+import { useGroupList } from './useGroupList';
 
 export const useHomeDashboard = () => {
   const { user, signOut } = useAuthStore();
@@ -16,7 +16,7 @@ export const useHomeDashboard = () => {
   const [owedToUser, setOwedToUser] = useState(0);
   const [userOwes, setUserOwes] = useState(0);
 
-  const fetchBalance = async () => {
+  const fetchBalance = useCallback(async () => {
     if (!user) return;
     try {
       const balanceData = await groupService.getUserDashboardBalances(user.id);
@@ -26,14 +26,14 @@ export const useHomeDashboard = () => {
     } catch (error) {
       console.error('Error fetching balance:', error);
     }
-  };
+  }, [user]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     await Promise.all([fetchGroups(), fetchBalance()]);
     setLoading(false);
     setRefreshing(false);
-  }, [fetchGroups, user]);
+  }, [fetchGroups, fetchBalance]);
 
   const onRefresh = () => {
     setRefreshing(true);

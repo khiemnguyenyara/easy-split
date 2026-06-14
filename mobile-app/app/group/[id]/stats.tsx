@@ -11,6 +11,18 @@ import { Screen, GlassCard, GlassText, ListItem, Loader } from '../../../src/com
 
 const screenWidth = Dimensions.get('window').width;
 
+// Fixed, distinct palette for per-member chart slices (indexed by member order).
+const CHART_COLORS = [
+  '#FF512F',
+  '#DD2476',
+  '#10B981',
+  '#3B82F6',
+  '#F59E0B',
+  '#8B5CF6',
+  '#EC4899',
+  '#14B8A6',
+];
+
 export default function StatsScreen() {
   const { t } = useTranslation();
   const colors = useThemeColors();
@@ -19,14 +31,16 @@ export default function StatsScreen() {
 
   if (loading) return <Loader fullscreen />;
 
-  const userExpenses = members.map((member) => {
+  const userExpenses = members.map((member, index) => {
     const total = expenses
       .filter((exp) => exp.payer_id === member.user_id)
       .reduce((sum, exp) => sum + exp.amount, 0);
     return {
       name: member.full_name?.split(' ')[0] ?? '',
       amount: total,
-      color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+      // Stable palette (indexed by member) — avoids invalid short hex from
+      // Math.random().toString(16) and stops colors flickering on re-render.
+      color: CHART_COLORS[index % CHART_COLORS.length],
       legendFontColor: colors.contentMuted,
       legendFontSize: 12,
     };

@@ -183,7 +183,7 @@ export default function ChatScreen() {
       const sent = await fetchMessageById(msgData.message_id);
       if (sent) upsertMessage(sent);
     } catch (error) {
-      Alert.alert(t('common.error'), getErrorMessage(error));
+      Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
     } finally {
       setSubmitting(false);
     }

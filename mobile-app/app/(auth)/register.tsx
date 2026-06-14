@@ -77,7 +77,7 @@ export default function RegisterScreen() {
           <View className="mb-6 items-center">
             <Image
               source={require('../../assets/easy-split-logo.png')}
-              style={{ width: 96, height: 96 }}
+              style={{ width: 128, height: 128, borderRadius: 100 }}
               resizeMode="contain"
             />
           </View>

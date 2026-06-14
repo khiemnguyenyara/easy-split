@@ -18,7 +18,12 @@ export const useGroupList = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchGroups = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      // Auth not resolved yet — don't leave the screen stuck on the spinner.
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     try {
       const data = await groupService.getUserGroups(user.id);

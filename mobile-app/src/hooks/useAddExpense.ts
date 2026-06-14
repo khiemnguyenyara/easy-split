@@ -105,12 +105,16 @@ export const useAddExpense = (groupId: string) => {
 
       if (expError) throw expError;
 
-      // 2. Create splits
-      const shareAmount = amountValue / splitPlayers.length;
+      // 2. Create splits — distribute integer đồng exactly (largest-remainder):
+      // the leftover after an uneven division is handed out one đồng at a time,
+      // so the shares always sum back to the expense amount (no rounding leak).
+      const n = splitPlayers.length;
+      const base = Math.floor(amountValue / n);
+      let remainder = amountValue - base * n;
       const splits = splitPlayers.map((userId) => ({
         expense_id: expense.expense_id,
         user_id: userId,
-        share_amount: shareAmount,
+        share_amount: base + (remainder-- > 0 ? 1 : 0),
       }));
 
       const { error: splitError } = await supabase.from('expense_splits').insert(splits);

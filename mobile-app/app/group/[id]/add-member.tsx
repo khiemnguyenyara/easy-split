@@ -79,11 +79,7 @@ export default function AddMemberScreen() {
                   onPress={() => addMember(item)}
                   className="h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/15"
                 >
-                  {adding ? (
-                    <Loader size="small" />
-                  ) : (
-                    <UserPlus size={18} color={colors.accent} />
-                  )}
+                  {adding ? <Loader size="small" /> : <UserPlus size={18} color={colors.accent} />}
                 </TouchableOpacity>
               )}
             </View>

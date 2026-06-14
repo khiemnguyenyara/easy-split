@@ -10,6 +10,7 @@ export const useCreateGroup = () => {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [groupId, setGroupId] = useState<string | null>(null);
 
   const generateInviteCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -34,13 +35,8 @@ export const useCreateGroup = () => {
     setLoading(true);
     const code = generateInviteCode();
 
-    console.log('--- Creating Group Debug ---');
-    console.log('User ID:', user.id);
-    console.log('Group Name:', groupName.trim());
-    console.log('Invite Code:', code);
-
     try {
-      await groupService.createGroupWithAdmin({
+      const groupData = await groupService.createGroupWithAdmin({
         group_name: groupName.trim(),
         description: description.trim(),
         invite_code: code,
@@ -49,7 +45,10 @@ export const useCreateGroup = () => {
       });
 
       setInviteCode(code);
-      return { success: true, code };
+      if (groupData?.group_id) {
+        setGroupId(groupData.group_id);
+      }
+      return { success: true, code, groupId: groupData?.group_id };
     } catch (error) {
       console.error('Error creating group:', error);
       Alert.alert(
@@ -66,5 +65,6 @@ export const useCreateGroup = () => {
     createGroup,
     loading,
     inviteCode,
+    groupId,
   };
 };

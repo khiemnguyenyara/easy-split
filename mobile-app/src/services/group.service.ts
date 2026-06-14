@@ -359,9 +359,12 @@ export const groupService = {
       pairNet[key] = (pairNet[key] || 0) + sign * s.share_amount;
     });
 
-    // Apply confirmed settlements to the pair, reducing the debtor→creditor debt
-    // toward zero. Clamped so an over-payment (or a settlement made in simplified
-    // mode against an indirect debt) can't flip the pair into a phantom reverse debt.
+    // Apply confirmed settlements to the pair, paying down the debtor→creditor
+    // debt. NOT clamped — this mirrors the per-user net-balance computation
+    // exactly, so the "Detailed" and "Simplified" views always reconcile (a
+    // person balanced in one is balanced in the other). If a settlement overpays
+    // (or was made against an indirect debt in simplified mode), it shows as the
+    // creditor owing the debtor back — the same truth the net balance reflects.
     confirmedSettlements?.forEach((s) => {
       const debtor = s.debtor_id ?? undefined;
       const creditor = s.creditor_id ?? undefined;
@@ -370,9 +373,7 @@ export const groupService = {
       const idHigh = debtor < creditor ? creditor : debtor;
       const sign = debtor === idLow ? 1 : -1;
       const key = `${idLow}|${idHigh}`;
-      // Current debt the debtor owes the creditor (>= 0 means a real debt to settle).
-      const debtorOwes = sign * (pairNet[key] || 0);
-      pairNet[key] = sign * Math.max(0, debtorOwes - s.amount);
+      pairNet[key] = (pairNet[key] || 0) - sign * s.amount;
     });
 
     const rawDebts: SimplifiedDebt[] = [];

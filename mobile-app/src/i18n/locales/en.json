@@ -221,8 +221,15 @@
     "leaveTitle": "Leave group",
     "leaveConfirm": "Are you sure you want to leave \"{{name}}\"?",
     "leaveAction": "Leave",
+    "cannotLeaveTitle": "Settle up first",
+    "cannotLeaveDebt": "You still have an unsettled balance in this group. Please settle all debts before leaving.",
+    "cannotRemoveTitle": "Settle up first",
+    "cannotRemoveDebt": "{{name}} still has an unsettled balance. Settle their debts before removing them.",
     "rulesTitle": "Group rules",
-    "rulesDesc": "Only the group owner can remove members or change important group settings. All members can add new expenses."
+    "rulesDesc": "Only the group owner can remove members or change important group settings. All members can add new expenses.",
+    "deleteButton": "Delete group",
+    "deleteTitle": "Delete group",
+    "deleteConfirm": "Are you sure you want to delete the group \"{{name}}\"? All expenses, members, and related debts will be permanently deleted."
   },
   "addMember": {
     "title": "Add member",
