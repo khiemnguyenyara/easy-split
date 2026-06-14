@@ -14,3 +14,5 @@ export { Badge } from './Badge';
 export { Avatar } from './Avatar';
 export { StatTile } from './StatTile';
 export { ProgressBar } from './ProgressBar';
+export { ExpenseCard } from './ExpenseCard';
+export { GroupCard } from './GroupCard';

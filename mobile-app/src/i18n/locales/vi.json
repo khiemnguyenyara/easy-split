@@ -240,7 +240,8 @@
     "emptyTitle": "Không tìm thấy người dùng",
     "emptyDesc": "Không có ai khớp với tìm kiếm.",
     "alreadyMember": "Đã trong nhóm",
-    "added": "Đã thêm {{name}} vào nhóm."
+    "added": "Đã thêm {{name}} vào nhóm.",
+    "suggestions": "Gợi ý cho bạn"
   },
   "settlement": {
     "pendingConfirm": "Chờ xác nhận",

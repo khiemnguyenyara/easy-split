@@ -6,6 +6,7 @@ import { Wallet, ArrowDownLeft, ArrowUpRight, Users } from 'lucide-react-native'
 import { useDebtsOverview } from '../../src/hooks/useDebtsOverview';
 import { useThemeColors } from '../../src/theme';
 import { formatCurrency } from '../../src/utils/format';
+import { getGroupBgImage } from '../../src/utils/image';
 import {
   Screen,
   GlassCard,
@@ -77,6 +78,7 @@ export default function DebtsScreen() {
                 key={g.group_id}
                 icon={Users}
                 title={g.group_name}
+                backgroundImageUri={getGroupBgImage(g.group_id)}
                 onPress={() => router.push(`/group/${g.group_id}`)}
                 className="mb-4"
                 subtitle={

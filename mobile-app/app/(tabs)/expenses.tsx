@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Receipt } from 'lucide-react-native';
 import { useExpensesFeed } from '../../src/hooks/useExpensesFeed';
 import { useThemeColors } from '../../src/theme';
-import { formatCurrency, formatDate } from '../../src/utils/format';
-import { Screen, GlassText, EmptyState, ListItem, Loader } from '../../src/components/ui';
+import { Screen, EmptyState, Loader, ExpenseCard } from '../../src/components/ui';
 
 export default function ExpensesScreen() {
   const { t } = useTranslation();
@@ -39,18 +38,11 @@ export default function ExpensesScreen() {
       ) : (
         <View>
           {expenses.map((exp) => (
-            <ListItem
+            <ExpenseCard
               key={exp.expense_id}
-              icon={Receipt}
-              title={exp.description || t('expenses.untitled')}
-              subtitle={`${exp.group_name} • ${formatDate(exp.created_at)}`}
+              expense={exp}
+              showGroup
               onPress={() => router.push(`/group/${exp.group_id}`)}
-              className="mb-4"
-              trailing={
-                <GlassText variant="h3" className="text-lg">
-                  {formatCurrency(exp.amount)}
-                </GlassText>
-              }
             />
           ))}
         </View>
@@ -58,3 +50,4 @@ export default function ExpensesScreen() {
     </Screen>
   );
 }
+

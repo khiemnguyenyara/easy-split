@@ -7,7 +7,14 @@ import { TrendingUp, PieChart as PieIcon, BarChart3, Receipt } from 'lucide-reac
 import { useGroupDetails } from '../../../src/hooks/useGroupDetails';
 import { useThemeColors } from '../../../src/theme';
 import { formatCurrency, formatFullDate } from '../../../src/utils/format';
-import { Screen, GlassCard, GlassText, ListItem, Loader } from '../../../src/components/ui';
+import {
+  Screen,
+  GlassCard,
+  GlassText,
+  Loader,
+  EmptyState,
+  ExpenseCard,
+} from '../../../src/components/ui';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -81,8 +88,8 @@ export default function StatsScreen() {
             {t('stats.byMember')}
           </GlassText>
         </View>
-        <GlassCard intensity={20} className="items-center" padding="p-4">
-          {hasData ? (
+        {hasData ? (
+          <GlassCard intensity={20} className="items-center" padding="p-4">
             <BarChart
               data={{
                 labels: userExpenses.map((u) => u.name),
@@ -97,12 +104,10 @@ export default function StatsScreen() {
               fromZero
               style={{ borderRadius: 16 }}
             />
-          ) : (
-            <View className="items-center py-10">
-              <GlassText className="text-content-faint">{t('stats.noSpendData')}</GlassText>
-            </View>
-          )}
-        </GlassCard>
+          </GlassCard>
+        ) : (
+          <EmptyState icon={BarChart3} title={t('stats.noSpendData')} className="py-4 w-full" />
+        )}
       </View>
 
       <View className="mb-10">
@@ -112,8 +117,8 @@ export default function StatsScreen() {
             {t('stats.contributionRatio')}
           </GlassText>
         </View>
-        <GlassCard intensity={20} className="items-center" padding="p-4">
-          {hasData ? (
+        {hasData ? (
+          <GlassCard intensity={20} className="items-center" padding="p-4">
             <PieChart
               data={userExpenses}
               width={screenWidth - 80}
@@ -124,12 +129,10 @@ export default function StatsScreen() {
               paddingLeft="15"
               absolute
             />
-          ) : (
-            <View className="items-center py-10">
-              <GlassText className="text-content-faint">{t('stats.noContribData')}</GlassText>
-            </View>
-          )}
-        </GlassCard>
+          </GlassCard>
+        ) : (
+          <EmptyState icon={PieIcon} title={t('stats.noContribData')} className="py-4 w-full" />
+        )}
       </View>
 
       <View className="mb-10">
@@ -140,22 +143,10 @@ export default function StatsScreen() {
           </GlassText>
         </View>
         {expenses.slice(0, 5).map((exp, idx) => (
-          <ListItem
+          <ExpenseCard
             key={exp.expense_id}
-            intensity={15}
-            title={exp.description || t('expenses.untitled')}
-            subtitle={formatFullDate(exp.created_at)}
-            className="mb-3"
-            leading={
-              <View className="mr-4 h-10 w-10 items-center justify-center rounded-xl border border-surface-line bg-surface-fill">
-                <GlassText className="font-outfit-bold text-[10px] text-content-faint">
-                  {idx + 1}
-                </GlassText>
-              </View>
-            }
-            trailing={
-              <GlassText className="font-outfit-bold">{formatCurrency(exp.amount)}</GlassText>
-            }
+            expense={exp}
+            index={idx + 1}
           />
         ))}
       </View>

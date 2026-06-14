@@ -12,7 +12,7 @@ export default function AddMemberScreen() {
   const colors = useThemeColors();
   const { id } = useLocalSearchParams();
   const groupId = Array.isArray(id) ? id[0] : id;
-  const { query, results, searching, addingId, search, addMember } = useAddMember(groupId);
+  const { query, results, searching, addingId, search, addMember, suggestions, fetchSuggestions } = useAddMember(groupId);
 
   const trimmed = query.trim();
 
@@ -31,11 +31,55 @@ export default function AddMemberScreen() {
     </View>
   );
 
+  const renderSuggestions = () => {
+    if (suggestions.length === 0) return null;
+    return (
+      <View className="mb-6">
+        <GlassText variant="caption" className="mb-3 tracking-widest text-[10px] text-content-muted uppercase">
+          {t('addMember.suggestions')}
+        </GlassText>
+        <View className="gap-2">
+          {suggestions.map((item) => {
+            const adding = addingId === item.user_id;
+            return (
+              <View
+                key={item.user_id}
+                className="flex-row items-center rounded-2xl border border-surface-line bg-surface-fill p-3"
+              >
+                <Avatar name={item.full_name} size="md" className="mr-3" />
+                <View className="flex-1">
+                  <GlassText className="font-outfit-bold text-sm" numberOfLines={1}>
+                    {item.full_name}
+                  </GlassText>
+                  <GlassText variant="caption" className="normal-case text-[11px] text-content-muted" numberOfLines={1}>
+                    {item.email}
+                  </GlassText>
+                </View>
+                <TouchableOpacity
+                  disabled={adding}
+                  onPress={() => addMember(item, () => fetchSuggestions())}
+                  className="h-8 w-8 items-center justify-center rounded-xl border border-accent/30 bg-accent/15"
+                >
+                  {adding ? <Loader size="small" /> : <UserPlus size={14} color={colors.accent} />}
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
   const renderBody = () => {
     if (searching) return <Loader className="mt-12" />;
 
     if (trimmed.length < 2) {
-      return renderHint(Users, t('addMember.hintTitle'), t('addMember.hintDesc'));
+      return (
+        <View className="flex-1">
+          {renderSuggestions()}
+          {renderHint(Users, t('addMember.hintTitle'), t('addMember.hintDesc'))}
+        </View>
+      );
     }
 
     if (results.length === 0) {

@@ -3,7 +3,6 @@ import { View, RefreshControl, Alert, TouchableOpacity, Text } from 'react-nativ
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { getGroupBgImage } from '../../src/utils/image';
 import {
   Plus,
   LogIn,
@@ -23,11 +22,11 @@ import {
   GlassCard,
   GlassText,
   StatTile,
-  ListItem,
   EmptyState,
   Badge,
   IconButton,
   Loader,
+  GroupCard,
 } from '../../src/components/ui';
 
 export default function HomeScreen() {
@@ -172,21 +171,11 @@ export default function HomeScreen() {
         />
       ) : (
         groups.map((item) => (
-          <ListItem
+          <GroupCard
             key={item.group_id}
-            icon={Users}
-            title={item.group_name}
-            backgroundImageUri={getGroupBgImage(item.group_id)}
+            group={item}
             onPress={() => router.push(`/group/${item.group_id}`)}
             className="mb-4"
-            subtitle={
-              <View className="mt-0.5 flex-row items-center">
-                <Users size={12} color={colors.content} />
-                <GlassText variant="caption" className="ml-1.5">
-                  {t('common.memberCount', { count: item.member_count })}
-                </GlassText>
-              </View>
-            }
           />
         ))
       )}

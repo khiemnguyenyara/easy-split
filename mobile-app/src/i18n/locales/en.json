@@ -240,7 +240,8 @@
     "emptyTitle": "No users found",
     "emptyDesc": "No user matches your search.",
     "alreadyMember": "In group",
-    "added": "{{name}} has been added to the group."
+    "added": "{{name}} has been added to the group.",
+    "suggestions": "Suggestions"
   },
   "settlement": {
     "pendingConfirm": "Pending confirmation",

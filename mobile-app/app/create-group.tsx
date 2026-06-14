@@ -29,7 +29,7 @@ export default function CreateGroupScreen() {
   const [copied, setCopied] = useState(false);
 
   const { createGroup, loading, inviteCode, groupId } = useCreateGroup();
-  const { query, results, searching, addingId, search, addMember } = useAddMember(groupId || '');
+  const { query, results, searching, addingId, search, addMember, suggestions, fetchSuggestions } = useAddMember(groupId || '');
 
   const handleCreateGroup = async () => {
     await createGroup(groupName, description, budgetAmount);
@@ -110,6 +110,48 @@ export default function CreateGroupScreen() {
             </View>
           );
         })}
+      </View>
+    );
+  };
+
+  const renderMemberSuggestions = () => {
+    if (query.trim().length >= 2 || suggestions.length === 0) {
+      return null;
+    }
+
+    return (
+      <View className="mb-4">
+        <GlassText variant="caption" className="mb-2 tracking-widest text-[10px] text-content-muted uppercase">
+          {t('addMember.suggestions')}
+        </GlassText>
+        <View className="gap-2">
+          {suggestions.map((item) => {
+            const adding = addingId === item.user_id;
+            return (
+              <View
+                key={item.user_id}
+                className="flex-row items-center rounded-2xl border border-surface-line bg-surface-fill p-3"
+              >
+                <Avatar name={item.full_name} size="md" className="mr-3" />
+                <View className="flex-1">
+                  <GlassText className="font-outfit-bold text-sm" numberOfLines={1}>
+                    {item.full_name}
+                  </GlassText>
+                  <GlassText variant="caption" className="normal-case text-[11px] text-content-muted" numberOfLines={1}>
+                    {item.email}
+                  </GlassText>
+                </View>
+                <TouchableOpacity
+                  disabled={adding}
+                  onPress={() => addMember(item, () => fetchSuggestions())}
+                  className="h-8 w-8 items-center justify-center rounded-lg border border-accent/30 bg-accent/15"
+                >
+                  {adding ? <Loader size="small" /> : <UserPlus size={14} color={colors.accent} />}
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </View>
       </View>
     );
   };
@@ -198,6 +240,8 @@ export default function CreateGroupScreen() {
                   autoCorrect={false}
                   containerClassName="mb-3"
                 />
+
+                {renderMemberSuggestions()}
 
                 {renderMemberResults()}
               </GlassCard>

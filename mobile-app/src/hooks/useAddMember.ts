@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Alert } from 'react-native';
 import i18n from '../i18n';
+import { supabase } from '../api/supabase';
 import { groupService } from '../services/group.service';
 import { getErrorMessage } from '../utils/error';
 import type { UserSearchResult } from '../types/models';
@@ -15,10 +16,53 @@ export const useAddMember = (groupId: string) => {
   const [results, setResults] = useState<UserSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<UserSearchResult[]>([]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guards against out-of-order responses overwriting newer results.
   const reqIdRef = useRef(0);
+
+  const fetchSuggestions = useCallback(async () => {
+    if (!groupId) return;
+    try {
+      // 1. Get current members of the group
+      const { data: memberRows, error: memberError } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', groupId);
+
+      if (memberError) throw memberError;
+      const memberIds = new Set(memberRows?.map((m) => m.user_id) || []);
+
+      // 2. Fetch other user profiles
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email, avatar_url')
+        .limit(20);
+
+      if (profileError) throw profileError;
+
+      // 3. Filter out members, keep at most 3
+      const filtered = (profiles || [])
+        .filter((p) => !memberIds.has(p.user_id))
+        .slice(0, 3)
+        .map((p) => ({
+          user_id: p.user_id,
+          full_name: p.full_name,
+          email: p.email,
+          avatar_url: p.avatar_url,
+          is_member: false,
+        }));
+
+      setSuggestions(filtered);
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    fetchSuggestions();
+  }, [fetchSuggestions]);
 
   const search = useCallback(
     (text: string) => {
@@ -76,5 +120,5 @@ export const useAddMember = (groupId: string) => {
     [groupId]
   );
 
-  return { query, results, searching, addingId, search, addMember };
+  return { query, results, searching, addingId, search, addMember, suggestions, fetchSuggestions };
 };
