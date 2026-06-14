@@ -44,13 +44,14 @@ export default function NotificationsScreen() {
     Alert.alert(t('notif.actionsTitle'), undefined, buttons);
   };
 
-  // Load on focus; mark everything read when leaving so the home badge clears.
+  // Load on focus and mark all read immediately so the home badge clears when going back.
   useFocusEffect(
     useCallback(() => {
-      fetchData();
-      return () => {
-        markAllRead();
+      const loadAndMark = async () => {
+        await fetchData();
+        await markAllRead();
       };
+      loadAndMark();
     }, [fetchData, markAllRead])
   );
 
