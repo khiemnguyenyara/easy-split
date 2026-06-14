@@ -20,7 +20,8 @@
     "memberCount": "{{count}} members",
     "signOut": "Sign out",
     "signOutConfirm": "Are you sure you want to sign out?",
-    "vnd": "VND"
+    "vnd": "VND",
+    "permissionDenied": "Photo library permission denied."
   },
   "tabs": {
     "overview": "Overview",
@@ -122,6 +123,7 @@
     "copied": "Copied",
     "copyCode": "Copy code",
     "backHome": "Back to home",
+    "selectedMembers": "Selected members",
     "title": "Create new group",
     "nameLabel": "Group name",
     "namePlaceholder": "e.g. Da Lat trip, Lunch...",
@@ -179,7 +181,12 @@
     "groupFund": "Group shared fund",
     "fundSectionDesc": "Create a shared fund and track everyone's contributions toward a common goal.",
     "openFunds": "Manage funds",
-    "viewStats": "View statistics"
+    "viewStats": "View statistics",
+    "payDebtAmount": "Payment amount",
+    "errAmountExceedsDebt": "Payment amount cannot exceed the debt.",
+    "chooseProofAndPay": "Select image & Pay",
+    "partialPayNote": "Will receive advance: {{paid}} (remaining: {{remaining}})",
+    "partialPayNoteOwe": "Awaiting approval for advance: {{paid}} (remaining: {{remaining}})"
   },
   "addExpense": {
     "title": "Add expense",
@@ -241,6 +248,7 @@
     "emptyDesc": "No user matches your search.",
     "alreadyMember": "In group",
     "added": "{{name}} has been added to the group.",
+    "addedLabel": "Added",
     "suggestions": "Suggestions"
   },
   "settlement": {
@@ -284,7 +292,10 @@
     "errMissing": "Please enter the fund name and target amount.",
     "created": "New fund created.",
     "errNoAmount": "Please enter a contribution amount.",
-    "contributed": "Contribution sent. Waiting for admin approval."
+    "contributed": "Contribution sent. Waiting for admin approval.",
+    "statusActive": "Active",
+    "statusCompleted": "Completed",
+    "viewProof": "View image"
   },
   "settings": {
     "title": "Settings",

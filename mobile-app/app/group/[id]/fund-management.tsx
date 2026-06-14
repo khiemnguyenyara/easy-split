@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { View, Alert, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Alert, RefreshControl, TouchableOpacity, Image, Modal } from 'react-native';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Plus, PiggyBank, Target, CheckCircle2, Check, Clock } from 'lucide-react-native';
+import { Plus, PiggyBank, Target, CheckCircle2, Check, Clock, X } from 'lucide-react-native';
 import { supabase } from '../../../src/api/supabase';
 import { useAuthStore } from '../../../src/store/useAuthStore';
 import * as ImagePicker from 'expo-image-picker';
@@ -45,6 +45,7 @@ export default function FundManagementScreen() {
   const [fundName, setFundName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -137,8 +138,14 @@ export default function FundManagementScreen() {
       return;
     }
 
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(t('common.error'), t('common.permissionDenied'));
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       allowsEditing: true,
       quality: 0.5,
       base64: true,
@@ -216,9 +223,16 @@ export default function FundManagementScreen() {
         )
         .reduce((sum, c) => sum + Number(c.amount), 0);
 
+      const currentFund = funds.find((f) => f.funding_id === fundingId);
+      const target = currentFund ? Number(currentFund.target_amount) : 0;
+      const isCompleted = target > 0 && newConfirmedTotal >= target;
+
       await supabase
         .from('fundings')
-        .update({ current_amount: newConfirmedTotal })
+        .update({
+          current_amount: newConfirmedTotal,
+          status: isCompleted ? 'completed' : 'active',
+        })
         .eq('funding_id', fundingId);
 
       Alert.alert(t('common.success'), t('fund.confirmedContribution'));
@@ -319,7 +333,10 @@ export default function FundManagementScreen() {
                     </GlassText>
                   </View>
                 </View>
-                <Badge label={fund.status ?? ''} tone="success" />
+                <Badge
+                  label={fund.status === 'completed' ? t('fund.statusCompleted') : t('fund.statusActive')}
+                  tone={fund.status === 'completed' ? 'success' : 'accent'}
+                />
               </View>
 
               <ProgressBar progress={progress} tone="success" className="mb-2 h-2.5" />
@@ -354,9 +371,21 @@ export default function FundManagementScreen() {
                           <GlassText className="font-outfit-medium text-sm" numberOfLines={1}>
                             {c.profiles?.full_name || t('common.user')}
                           </GlassText>
-                          <GlassText variant="caption" className="text-[10px]">
-                            {formatNumber(Number(c.amount))}đ
-                          </GlassText>
+                          <View className="flex-row items-center gap-2">
+                            <GlassText variant="caption" className="text-[10px]">
+                              {formatNumber(Number(c.amount))}đ
+                            </GlassText>
+                            {c.proof_img ? (
+                              <TouchableOpacity onPress={() => setProofUrl(c.proof_img)}>
+                                <GlassText
+                                  variant="caption"
+                                  className="text-[10px] text-accent underline"
+                                >
+                                  {t('fund.viewProof')}
+                                </GlassText>
+                              </TouchableOpacity>
+                            ) : null}
+                          </View>
                         </View>
 
                         {confirmed ? (
@@ -400,6 +429,30 @@ export default function FundManagementScreen() {
           );
         })
       )}
+
+      {/* Proof image viewer */}
+      <Modal
+        visible={!!proofUrl}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setProofUrl(null)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setProofUrl(null)}
+          className="flex-1 items-center justify-center bg-black/90 px-6"
+        >
+          {proofUrl ? (
+            <Image source={{ uri: proofUrl }} className="h-3/4 w-full" resizeMode="contain" />
+          ) : null}
+          <TouchableOpacity
+            onPress={() => setProofUrl(null)}
+            className="absolute right-6 top-16 h-10 w-10 items-center justify-center rounded-full bg-white/20"
+          >
+            <X size={20} color={colors.white} />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </Screen>
   );
 }

@@ -20,7 +20,8 @@
     "memberCount": "{{count}} thành viên",
     "signOut": "Đăng xuất",
     "signOutConfirm": "Bạn có chắc chắn muốn đăng xuất không?",
-    "vnd": "VNĐ"
+    "vnd": "VNĐ",
+    "permissionDenied": "Quyền truy cập thư viện ảnh bị từ chối."
   },
   "tabs": {
     "overview": "Tổng quan",
@@ -122,6 +123,7 @@
     "copied": "Đã sao chép",
     "copyCode": "Sao chép mã",
     "backHome": "Về trang chủ",
+    "selectedMembers": "Thành viên đã chọn",
     "title": "Tạo nhóm mới",
     "nameLabel": "Tên nhóm",
     "namePlaceholder": "Ví dụ: Du lịch Đà Lạt, Ăn trưa...",
@@ -179,7 +181,12 @@
     "groupFund": "Quỹ chung của nhóm",
     "fundSectionDesc": "Tạo quỹ chung và theo dõi đóng góp của cả nhóm cho một mục tiêu chung.",
     "openFunds": "Quản lý quỹ",
-    "viewStats": "Xem thống kê"
+    "viewStats": "Xem thống kê",
+    "payDebtAmount": "Số tiền muốn trả",
+    "errAmountExceedsDebt": "Số tiền quyết toán không được vượt quá số nợ.",
+    "chooseProofAndPay": "Nộp bằng chứng",
+    "partialPayNote": "Sẽ nhận trả trước: {{paid}} (còn lại: {{remaining}})",
+    "partialPayNoteOwe": "Đang chờ duyệt trả trước: {{paid}} (còn lại: {{remaining}})"
   },
   "addExpense": {
     "title": "Thêm chi tiêu",
@@ -241,6 +248,7 @@
     "emptyDesc": "Không có ai khớp với tìm kiếm.",
     "alreadyMember": "Đã trong nhóm",
     "added": "Đã thêm {{name}} vào nhóm.",
+    "addedLabel": "Đã thêm",
     "suggestions": "Gợi ý cho bạn"
   },
   "settlement": {
@@ -284,7 +292,10 @@
     "errMissing": "Vui lòng nhập tên quỹ và số tiền mục tiêu.",
     "created": "Đã tạo quỹ mới.",
     "errNoAmount": "Vui lòng nhập số tiền đóng góp.",
-    "contributed": "Đã gửi đóng góp. Chờ Admin xác nhận."
+    "contributed": "Đã gửi đóng góp. Chờ Admin xác nhận.",
+    "statusActive": "Đang hoạt động",
+    "statusCompleted": "Đã hoàn thành",
+    "viewProof": "Xem ảnh"
   },
   "settings": {
     "title": "Cài đặt",

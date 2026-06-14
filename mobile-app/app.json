@@ -37,6 +37,13 @@
         {
           "faceIDPermission": "Allow EasySplit to use Face ID to unlock the app."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cho phép EasySplit truy cập thư viện ảnh để tải lên minh chứng thanh toán.",
+          "cameraPermission": "Cho phép EasySplit truy cập máy ảnh để chụp ảnh hóa đơn/minh chứng."
+        }
       ]
     ],
     "scheme": "easy-split"

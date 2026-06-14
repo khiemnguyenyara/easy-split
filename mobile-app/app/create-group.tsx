@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Users, FileText, Copy, Check, Wallet, Search, UserPlus } from 'lucide-react-native';
+import { Users, FileText, Copy, Check, Wallet, Search, UserPlus, X } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useCreateGroup } from '../src/hooks/useCreateGroup';
-import { useAddMember } from '../src/hooks/useAddMember';
+import { useAuthStore } from '../src/store/useAuthStore';
+import { supabase } from '../src/api/supabase';
+import { groupService } from '../src/services/group.service';
 import { useThemeColors } from '../src/theme';
 import { formatAmountInput } from '../src/utils/format';
 import {
@@ -23,16 +25,92 @@ export default function CreateGroupScreen() {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const router = useRouter();
+  const { user } = useAuthStore();
   const [groupName, setGroupName] = useState('');
   const [description, setDescription] = useState('');
   const [budgetAmount, setBudgetAmount] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const { createGroup, loading, inviteCode, groupId } = useCreateGroup();
-  const { query, results, searching, addingId, search, addMember, suggestions, fetchSuggestions } = useAddMember(groupId || '');
+  // States for pre-creation member search and selection
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
+  const [creating, setCreating] = useState(false);
+
+  const { createGroup, loading, inviteCode } = useCreateGroup();
+
+  // Fetch local suggestions on mount
+  useEffect(() => {
+    const fetchLocalSuggestions = async () => {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, email, avatar_url')
+          .neq('user_id', user.id)
+          .limit(3);
+        if (error) throw error;
+        setSuggestions(data || []);
+      } catch (err) {
+        console.error('Error fetching local suggestions:', err);
+      }
+    };
+    fetchLocalSuggestions();
+  }, [user]);
+
+  const handleSearch = async (text: string) => {
+    setSearchQuery(text);
+    const trimmed = text.trim();
+    if (trimmed.length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email, avatar_url')
+        .neq('user_id', user?.id || '')
+        .or(`full_name.ilike.%${trimmed}%,email.ilike.%${trimmed}%`)
+        .limit(10);
+      if (error) throw error;
+      setSearchResults(data || []);
+    } catch (err) {
+      console.error('Error searching profiles:', err);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const toggleSelectMember = (member: any) => {
+    setSelectedMembers((prev) => {
+      const exists = prev.some((m) => m.user_id === member.user_id);
+      if (exists) {
+        return prev.filter((m) => m.user_id !== member.user_id);
+      } else {
+        return [...prev, member];
+      }
+    });
+  };
 
   const handleCreateGroup = async () => {
-    await createGroup(groupName, description, budgetAmount);
+    setCreating(true);
+    const result = await createGroup(groupName, description, budgetAmount);
+    if (result && result.success && result.groupId) {
+      // Loop over and add selected members to the newly created group in DB
+      try {
+        for (const member of selectedMembers) {
+          await groupService.addMemberToGroup(result.groupId, member.user_id);
+        }
+      } catch (err) {
+        console.error('Error adding members to new group:', err);
+      }
+    }
+    setCreating(false);
   };
 
   const copyToClipboard = async () => {
@@ -43,8 +121,44 @@ export default function CreateGroupScreen() {
     }
   };
 
-  const renderMemberResults = () => {
-    const trimmed = query.trim();
+  const renderSelectedMembers = () => {
+    if (selectedMembers.length === 0) return null;
+    return (
+      <View className="mb-4">
+        <GlassText
+          variant="caption"
+          className="mb-2 tracking-widest text-[10px] text-content-muted uppercase font-outfit-bold"
+        >
+          {t('createGroup.selectedMembers') || 'Selected'} ({selectedMembers.length})
+        </GlassText>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row py-1">
+          {selectedMembers.map((item) => (
+            <TouchableOpacity
+              key={item.user_id}
+              onPress={() => toggleSelectMember(item)}
+              activeOpacity={0.7}
+              className="items-center mr-4 relative"
+            >
+              <Avatar name={item.full_name} size="md" />
+              <GlassText
+                className="mt-1 text-[11px] font-outfit-bold text-center"
+                numberOfLines={1}
+                style={{ maxWidth: 64 }}
+              >
+                {item.full_name?.split(' ')[0]}
+              </GlassText>
+              <View className="absolute -top-1 -right-1 h-4 w-4 items-center justify-center rounded-full bg-danger border border-white dark:border-[#201D47]">
+                <X size={8} color="white" />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderLocalSearchResults = () => {
+    const trimmed = searchQuery.trim();
     if (searching) {
       return (
         <View className="py-4 items-center justify-center">
@@ -57,10 +171,13 @@ export default function CreateGroupScreen() {
       return null;
     }
 
-    if (results.length === 0) {
+    if (searchResults.length === 0) {
       return (
         <View className="py-4 items-center justify-center">
-          <GlassText variant="caption" className="text-content-faint text-center">
+          <GlassText
+            variant="caption"
+            className="text-content-faint text-center font-outfit-medium"
+          >
             {t('addMember.emptyTitle')}
           </GlassText>
         </View>
@@ -69,14 +186,12 @@ export default function CreateGroupScreen() {
 
     return (
       <View className="gap-2 mt-2">
-        {results.map((item) => {
-          const adding = addingId === item.user_id;
+        {searchResults.map((item) => {
+          const isSelected = selectedMembers.some((m) => m.user_id === item.user_id);
           return (
             <View
               key={item.user_id}
-              className={`flex-row items-center rounded-2xl border border-surface-line bg-surface-fill p-3 ${
-                item.is_member ? 'opacity-60' : ''
-              }`}
+              className="flex-row items-center rounded-2xl border border-surface-line bg-surface-fill p-3"
             >
               <Avatar name={item.full_name} size="md" className="mr-3" />
               <View className="flex-1">
@@ -91,22 +206,23 @@ export default function CreateGroupScreen() {
                   {item.email}
                 </GlassText>
               </View>
-              {item.is_member ? (
-                <View className="flex-row items-center rounded-lg border border-success/30 bg-success/10 px-2 py-1">
-                  <Check size={11} color={colors.success} />
-                  <GlassText className="ml-1 text-[10px] text-success">
-                    {t('addMember.alreadyMember')}
-                  </GlassText>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  disabled={adding}
-                  onPress={() => addMember(item)}
-                  className="h-8 w-8 items-center justify-center rounded-lg border border-accent/30 bg-accent/15"
-                >
-                  {adding ? <Loader size="small" /> : <UserPlus size={14} color={colors.accent} />}
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={() => toggleSelectMember(item)}
+                className={`h-8 px-2.5 flex-row items-center justify-center rounded-lg border ${
+                  isSelected ? 'border-success/30 bg-success/15' : 'border-accent/30 bg-accent/15'
+                }`}
+              >
+                {isSelected ? (
+                  <>
+                    <Check size={12} color={colors.success} style={{ marginRight: 4 }} />
+                    <GlassText className="font-outfit-bold text-xs text-success">
+                      {t('addMember.addedLabel') || 'Added'}
+                    </GlassText>
+                  </>
+                ) : (
+                  <UserPlus size={14} color={colors.accent} />
+                )}
+              </TouchableOpacity>
             </View>
           );
         })}
@@ -114,19 +230,22 @@ export default function CreateGroupScreen() {
     );
   };
 
-  const renderMemberSuggestions = () => {
-    if (query.trim().length >= 2 || suggestions.length === 0) {
+  const renderLocalSuggestions = () => {
+    if (searchQuery.trim().length >= 2 || suggestions.length === 0) {
       return null;
     }
 
     return (
       <View className="mb-4">
-        <GlassText variant="caption" className="mb-2 tracking-widest text-[10px] text-content-muted uppercase">
+        <GlassText
+          variant="caption"
+          className="mb-2 tracking-widest text-[10px] text-content-muted uppercase"
+        >
           {t('addMember.suggestions')}
         </GlassText>
         <View className="gap-2">
           {suggestions.map((item) => {
-            const adding = addingId === item.user_id;
+            const isSelected = selectedMembers.some((m) => m.user_id === item.user_id);
             return (
               <View
                 key={item.user_id}
@@ -137,16 +256,30 @@ export default function CreateGroupScreen() {
                   <GlassText className="font-outfit-bold text-sm" numberOfLines={1}>
                     {item.full_name}
                   </GlassText>
-                  <GlassText variant="caption" className="normal-case text-[11px] text-content-muted" numberOfLines={1}>
+                  <GlassText
+                    variant="caption"
+                    className="normal-case text-[11px] text-content-muted"
+                    numberOfLines={1}
+                  >
                     {item.email}
                   </GlassText>
                 </View>
                 <TouchableOpacity
-                  disabled={adding}
-                  onPress={() => addMember(item, () => fetchSuggestions())}
-                  className="h-8 w-8 items-center justify-center rounded-lg border border-accent/30 bg-accent/15"
+                  onPress={() => toggleSelectMember(item)}
+                  className={`h-8 px-2.5 flex-row items-center justify-center rounded-lg border ${
+                    isSelected ? 'border-success/30 bg-success/15' : 'border-accent/30 bg-accent/15'
+                  }`}
                 >
-                  {adding ? <Loader size="small" /> : <UserPlus size={14} color={colors.accent} />}
+                  {isSelected ? (
+                    <>
+                      <Check size={12} color={colors.success} style={{ marginRight: 4 }} />
+                      <GlassText className="font-outfit-bold text-xs text-success">
+                        {t('addMember.addedLabel') || 'Added'}
+                      </GlassText>
+                    </>
+                  ) : (
+                    <UserPlus size={14} color={colors.accent} />
+                  )}
                 </TouchableOpacity>
               </View>
             );
@@ -181,69 +314,41 @@ export default function CreateGroupScreen() {
                 {t('createGroup.successDesc')}
               </GlassText>
 
-              <GlassCard
-                intensity={45}
-                className="mb-6 w-full items-center border-success/20"
-                padding="p-6"
-              >
-                <GlassText variant="caption" className="mb-4 tracking-[4px]">
-                  {t('createGroup.yourInviteCode')}
-                </GlassText>
-                <GlassText className="mb-6 font-outfit-bold text-5xl tracking-tighter text-accent">
-                  {inviteCode}
-                </GlassText>
-
-                <TouchableOpacity
-                  onPress={copyToClipboard}
-                  className={`flex-row items-center rounded-2xl border px-5 py-2.5 ${
-                    copied ? 'border-success/30 bg-success/20' : 'border-surface-line bg-surface-fill'
-                  }`}
-                >
-                  {copied ? (
-                    <>
-                      <Check size={16} color={colors.success} style={{ marginRight: 6 }} />
-                      <GlassText className="font-outfit-bold text-success">
-                        {t('createGroup.copied')}
-                      </GlassText>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={16} color={colors.content} style={{ marginRight: 6 }} />
-                      <GlassText className="font-outfit-bold">{t('createGroup.copyCode')}</GlassText>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </GlassCard>
-
-              {/* Members Adding Section */}
-              <GlassCard
-                intensity={35}
-                className="mb-8 w-full border-surface-line"
-                padding="p-5"
-              >
-                <View className="mb-3 flex-row items-center gap-2">
-                  <UserPlus size={18} color={colors.accent} />
-                  <GlassText className="font-outfit-bold text-base">
-                    {t('addMember.title')}
+              <GlassCard intensity={35} className="mb-8 w-full border-surface-line" padding="p-6">
+                {/* Invite Code Section */}
+                <View className="items-center w-full mb-6">
+                  <GlassText variant="caption" className="mb-4 tracking-[4px]">
+                    {t('createGroup.yourInviteCode')}
                   </GlassText>
+                  <GlassText className="mb-6 font-outfit-bold text-5xl tracking-tighter text-accent">
+                    {inviteCode}
+                  </GlassText>
+
+                  <TouchableOpacity
+                    onPress={copyToClipboard}
+                    className={`flex-row items-center rounded-2xl border px-5 py-2.5 ${
+                      copied
+                        ? 'border-success/30 bg-success/20'
+                        : 'border-surface-line bg-surface-fill'
+                    }`}
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={16} color={colors.success} style={{ marginRight: 6 }} />
+                        <GlassText className="font-outfit-bold text-success">
+                          {t('createGroup.copied')}
+                        </GlassText>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={16} color={colors.content} style={{ marginRight: 6 }} />
+                        <GlassText className="font-outfit-bold">
+                          {t('createGroup.copyCode')}
+                        </GlassText>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 </View>
-                <GlassText variant="caption" className="mb-4 text-content-muted normal-case font-outfit-regular">
-                  {t('addMember.instruction')}
-                </GlassText>
-
-                <Input
-                  icon={Search}
-                  placeholder={t('addMember.searchPlaceholder')}
-                  value={query}
-                  onChangeText={search}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  containerClassName="mb-3"
-                />
-
-                {renderMemberSuggestions()}
-
-                {renderMemberResults()}
               </GlassCard>
 
               <Button
@@ -271,6 +376,7 @@ export default function CreateGroupScreen() {
           contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
           className="px-6"
+          keyboardShouldPersistTaps="handled"
         >
           <View className="pb-32 pt-4">
             <View className="mb-10 items-center">
@@ -279,7 +385,7 @@ export default function CreateGroupScreen() {
               </View>
             </View>
 
-            <GlassCard intensity={30} className="mb-10" padding="p-6">
+            <GlassCard intensity={30} className="mb-6" padding="p-6">
               <View className="gap-8">
                 <Input
                   label={t('createGroup.nameLabel')}
@@ -316,11 +422,41 @@ export default function CreateGroupScreen() {
               </View>
             </GlassCard>
 
+            {/* Members Adding Section (moved inside creation phase) */}
+            <GlassCard intensity={30} className="mb-8 w-full border-surface-line" padding="p-6">
+              <View className="mb-3 flex-row items-center gap-2">
+                <UserPlus size={18} color={colors.accent} />
+                <GlassText className="font-outfit-bold text-base">{t('addMember.title')}</GlassText>
+              </View>
+              <GlassText
+                variant="caption"
+                className="mb-4 text-content-muted normal-case font-outfit-regular"
+              >
+                {t('addMember.instruction')}
+              </GlassText>
+
+              {renderSelectedMembers()}
+
+              <Input
+                icon={Search}
+                placeholder={t('addMember.searchPlaceholder')}
+                value={searchQuery}
+                onChangeText={handleSearch}
+                autoCapitalize="none"
+                autoCorrect={false}
+                containerClassName="mb-3"
+              />
+
+              {renderLocalSuggestions()}
+
+              {renderLocalSearchResults()}
+            </GlassCard>
+
             <Button
-              title={loading ? t('common.processing') : t('createGroup.submit')}
+              title={creating || loading ? t('common.processing') : t('createGroup.submit')}
               onPress={handleCreateGroup}
-              loading={loading}
-              disabled={!groupName}
+              loading={creating || loading}
+              disabled={!groupName || creating || loading}
               className="w-full"
             />
           </View>

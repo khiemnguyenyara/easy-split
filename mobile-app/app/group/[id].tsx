@@ -17,7 +17,7 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../src/api/supabase';
 import { groupService } from '../../src/services/group.service';
 import { getGroupBgImage } from '../../src/utils/image';
-import { formatCurrency, formatDate, formatNumber, parseAmount } from '../../src/utils/format';
+import { formatCurrency, formatDate, formatNumber, parseAmount, formatAmountInput } from '../../src/utils/format';
 import { getErrorMessage } from '../../src/utils/error';
 import { simplifyDebts } from '../../src/utils/debts';
 import { EXPENSE_CATEGORY_IDS } from '../../src/constants';
@@ -55,6 +55,7 @@ import {
   Loader,
   ProgressBar,
   ExpenseCard,
+  Input,
 } from '../../src/components/ui';
 
 const TABS = [
@@ -76,6 +77,13 @@ export default function GroupDetailsScreen() {
   const [chatUnread, setChatUnread] = useState(0);
   const [settling, setSettling] = useState(false);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
+
+  // States for custom payment modal
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [paymentCreditorId, setPaymentCreditorId] = useState<string | null>(null);
+  const [paymentCreditorName, setPaymentCreditorName] = useState('');
+  const [paymentMaxAmount, setPaymentMaxAmount] = useState(0);
+  const [paymentAmount, setPaymentAmount] = useState('');
 
   const {
     group,
@@ -165,8 +173,15 @@ export default function GroupDetailsScreen() {
   // Debtor uploads a payment proof → creates a pending settlement to the creditor.
   const handlePayDebt = async (creditorId: string, amount: number) => {
     if (!user?.id) return;
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(t('common.error'), t('common.permissionDenied'));
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       allowsEditing: true,
       quality: 0.5,
       base64: true,
@@ -202,6 +217,23 @@ export default function GroupDetailsScreen() {
       Alert.alert(t('common.error'), getErrorMessage(error) || t('common.somethingWrong'));
     } finally {
       setSettling(false);
+    }
+  };
+
+  const submitCustomPayment = async () => {
+    const parsedAmount = parseAmount(paymentAmount);
+    if (parsedAmount <= 0) {
+      Alert.alert(t('common.error'), t('addExpense.errInvalidAmount'));
+      return;
+    }
+    if (parsedAmount > paymentMaxAmount) {
+      Alert.alert(t('common.error'), t('groupDetail.errAmountExceedsDebt'));
+      return;
+    }
+
+    setPaymentModalVisible(false);
+    if (paymentCreditorId) {
+      await handlePayDebt(paymentCreditorId, parsedAmount);
     }
   };
 
@@ -512,16 +544,32 @@ export default function GroupDetailsScreen() {
                           </GlassText>
                         </View>
                         {pending ? (
-                          <View className="mt-3 flex-row items-center justify-center rounded-2xl bg-surface-fill py-2.5">
-                            <Clock size={14} color={colors.accent} />
-                            <GlassText className="ml-2 font-outfit-bold text-xs text-content-muted">
-                              {t('settlement.pendingConfirm')}
-                            </GlassText>
+                          <View className="mt-3 flex-col gap-2">
+                            <View className="flex-row items-center justify-center rounded-2xl bg-surface-fill py-2.5">
+                              <Clock size={14} color={colors.accent} />
+                              <GlassText className="ml-2 font-outfit-bold text-xs text-content-muted">
+                                {t('settlement.pendingConfirm')}
+                              </GlassText>
+                            </View>
+                            {pending.amount < d.amount ? (
+                              <GlassText className="text-center font-outfit-medium text-[10px] text-accent">
+                                {t('groupDetail.partialPayNoteOwe', {
+                                  paid: formatCurrency(pending.amount),
+                                  remaining: formatCurrency(d.amount - pending.amount),
+                                })}
+                              </GlassText>
+                            ) : null}
                           </View>
                         ) : (
                           <TouchableOpacity
                             disabled={settling}
-                            onPress={() => handlePayDebt(d.to_id, d.amount)}
+                            onPress={() => {
+                              setPaymentCreditorId(d.to_id);
+                              setPaymentCreditorName(d.to_name);
+                              setPaymentMaxAmount(d.amount);
+                              setPaymentAmount(formatNumber(d.amount));
+                              setPaymentModalVisible(true);
+                            }}
                             className="mt-3 flex-row items-center justify-center rounded-2xl bg-content py-2.5"
                           >
                             <Camera size={16} color={colors.white} />
@@ -564,25 +612,35 @@ export default function GroupDetailsScreen() {
                           </GlassText>
                         </View>
                         {pending ? (
-                          <View className="mt-3 flex-row items-center gap-2">
-                            {pending.proof_image_url ? (
-                              <TouchableOpacity
-                                onPress={() => setProofUrl(pending.proof_image_url)}
-                                className="h-11 w-11 items-center justify-center rounded-2xl border border-surface-line bg-surface-fill"
-                              >
-                                <Eye size={18} color={colors.content} />
-                              </TouchableOpacity>
-                            ) : null}
-                            <TouchableOpacity
-                              disabled={settling}
-                              onPress={() => handleConfirmDebt(pending.settlement_id)}
-                              className="flex-1 flex-row items-center justify-center rounded-2xl bg-success py-2.5"
-                            >
-                              <Check size={16} color={colors.white} />
-                              <GlassText className="ml-2 font-outfit-bold text-xs text-white">
-                                {t('groupDetail.confirmPaid')}
+                          <View className="mt-3 flex-col gap-2">
+                            {pending.amount < d.amount ? (
+                              <GlassText className="text-center font-outfit-medium text-[10px] text-success">
+                                {t('groupDetail.partialPayNote', {
+                                  paid: formatCurrency(pending.amount),
+                                  remaining: formatCurrency(d.amount - pending.amount),
+                                })}
                               </GlassText>
-                            </TouchableOpacity>
+                            ) : null}
+                            <View className="flex-row items-center gap-2">
+                              {pending.proof_image_url ? (
+                                <TouchableOpacity
+                                  onPress={() => setProofUrl(pending.proof_image_url)}
+                                  className="h-11 w-11 items-center justify-center rounded-2xl border border-surface-line bg-surface-fill"
+                                >
+                                  <Eye size={18} color={colors.content} />
+                                </TouchableOpacity>
+                              ) : null}
+                              <TouchableOpacity
+                                disabled={settling}
+                                onPress={() => handleConfirmDebt(pending.settlement_id)}
+                                className="flex-1 flex-row items-center justify-center rounded-2xl bg-success py-2.5"
+                              >
+                                <Check size={16} color={colors.white} />
+                                <GlassText className="ml-2 font-outfit-bold text-xs text-white">
+                                  {t('groupDetail.confirmPaid')}
+                                </GlassText>
+                              </TouchableOpacity>
+                            </View>
                           </View>
                         ) : (
                           <View className="mt-3 flex-row items-center justify-center rounded-2xl bg-surface-fill py-2.5">
@@ -688,6 +746,59 @@ export default function GroupDetailsScreen() {
             <X size={20} color={colors.white} />
           </TouchableOpacity>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Custom Payment Amount & Proof Modal */}
+      <Modal
+        visible={paymentModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPaymentModalVisible(false)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/60 px-6">
+          <GlassCard intensity={40} className="w-full border-surface-line" padding="p-6">
+            <View className="mb-4 flex-row items-center justify-between">
+              <GlassText variant="h3">{t('groupDetail.payDebt')}</GlassText>
+              <TouchableOpacity onPress={() => setPaymentModalVisible(false)}>
+                <X size={20} color={colors.contentMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <GlassText variant="body" className="mb-4 text-content-muted">
+              {t('groupDetail.payTo')}: <GlassText className="font-outfit-bold text-content">{paymentCreditorName}</GlassText>
+            </GlassText>
+
+            <Input
+              label={t('groupDetail.payDebtAmount')}
+              placeholder="0"
+              keyboardType="numeric"
+              value={paymentAmount}
+              onChangeText={(v) => setPaymentAmount(formatAmountInput(v))}
+              trailing={
+                <View className="rounded-md border border-surface-line bg-surface-fill px-2 py-1">
+                  <GlassText className="font-outfit-bold text-[10px] text-content-muted">
+                    {t('common.vnd')}
+                  </GlassText>
+                </View>
+              }
+              containerClassName="mb-6"
+            />
+
+            <View className="flex-row gap-4">
+              <Button
+                title={t('common.cancel')}
+                variant="secondary"
+                onPress={() => setPaymentModalVisible(false)}
+                className="flex-1"
+              />
+              <Button
+                title={t('groupDetail.chooseProofAndPay')}
+                onPress={submitCustomPayment}
+                className="flex-[2]"
+              />
+            </View>
+          </GlassCard>
+        </View>
       </Modal>
     </Screen>
   );
