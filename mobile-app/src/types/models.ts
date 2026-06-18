@@ -132,7 +132,16 @@ export interface AppNotification {
   notification_id: string;
   title: string;
   message: string;
-  data: Record<string, unknown> | null;
+  data: Record<string, any> | null;
   is_read: boolean | null;
   created_at: string | null;
 }
+
+export interface UnpaidDebt {
+  group_id: string;
+  group_name: string;
+  creditor_id: string;
+  creditor_name: string;
+  amount: number;
+}
+

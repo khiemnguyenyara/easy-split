@@ -114,7 +114,9 @@
     "messageReceivedTitle": "New message",
     "messageReceivedBody": "{{actor}} messaged in {{group}}",
     "memberAddedTitle": "Added to a group",
-    "memberAddedBody": "{{actor}} added you to {{group}}"
+    "memberAddedBody": "{{actor}} added you to {{group}}",
+    "debtReminderTitle": "Debt reminder",
+    "debtReminderBody": "You owe {{actor}} {{amount}} in {{group}}"
   },
   "createGroup": {
     "successTitle": "Group created!",

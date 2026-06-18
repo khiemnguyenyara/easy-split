@@ -11,6 +11,7 @@ import type {
   DebtTotals,
   AppNotification,
   UserSearchResult,
+  UnpaidDebt,
 } from '../types/models';
 
 export interface CreateGroupPayload {
@@ -678,5 +679,13 @@ export const groupService = {
       .map((g) => ({ ...g, net: Math.round(net[g.group_id] || 0) }))
       .filter((g) => g.net !== 0)
       .sort((a, b) => b.net - a.net);
+  },
+
+  /** Get all unpaid debts where the current user owes money to others. */
+  async getUserUnpaidDebts(): Promise<UnpaidDebt[]> {
+    // @ts-ignore - Supabase type gen doesn't always pick up RPC endpoints
+    const { data, error } = await supabase.rpc('get_user_unpaid_debts');
+    if (error) throw error;
+    return (data as UnpaidDebt[]) ?? [];
   },
 };

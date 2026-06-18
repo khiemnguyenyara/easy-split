@@ -10,10 +10,12 @@ import {
   MessageCircle,
   MoreVertical,
   UserPlus,
+  Clock,
 } from 'lucide-react-native';
 import { useNotifications, AppNotification } from '../src/hooks/useNotifications';
 import { useThemeColors } from '../src/theme';
 import { Screen, GlassText, EmptyState, Loader } from '../src/components/ui';
+import { formatCurrency } from '../src/utils/format';
 
 export default function NotificationsScreen() {
   const { t } = useTranslation();
@@ -97,6 +99,16 @@ export default function NotificationsScreen() {
             group: p.group_name || '',
           }),
         };
+      case 'debt_reminder':
+        return {
+          icon: Clock,
+          title: t('notif.debtReminderTitle'),
+          body: t('notif.debtReminderBody', {
+            actor: p.actor || t('common.user'),
+            group: p.group_name || '',
+            amount: formatCurrency(p.amount || 0),
+          }),
+        };
       default:
         return { icon: Bell, title: n.title, body: n.message };
     }
@@ -166,13 +178,15 @@ export default function NotificationsScreen() {
                   {formatTime(n.created_at)}
                 </GlassText>
               </View>
-              <TouchableOpacity
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                onPress={() => openActions(n)}
-                className="-mr-1 ml-1 h-8 w-8 items-center justify-center rounded-full"
-              >
-                <MoreVertical size={18} color={colors.contentFaint} />
-              </TouchableOpacity>
+              {n.data?.type !== 'debt_reminder' && (
+                <TouchableOpacity
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => openActions(n)}
+                  className="-mr-1 ml-1 h-8 w-8 items-center justify-center rounded-full"
+                >
+                  <MoreVertical size={18} color={colors.contentFaint} />
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           );
         })

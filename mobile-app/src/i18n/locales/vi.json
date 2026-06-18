@@ -114,7 +114,9 @@
     "messageReceivedTitle": "Tin nhắn mới",
     "messageReceivedBody": "{{actor}} đã nhắn trong {{group}}",
     "memberAddedTitle": "Bạn được thêm vào nhóm",
-    "memberAddedBody": "{{actor}} đã thêm bạn vào {{group}}"
+    "memberAddedBody": "{{actor}} đã thêm bạn vào {{group}}",
+    "debtReminderTitle": "Nhắc nhở nợ",
+    "debtReminderBody": "Bạn đang nợ {{actor}} số tiền {{amount}} trong nhóm {{group}}"
   },
   "createGroup": {
     "successTitle": "Tạo nhóm thành công!",

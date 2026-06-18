@@ -12,8 +12,30 @@ export const useNotifications = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const data = await groupService.getNotifications();
-      setNotifications(data as AppNotification[]);
+      const [dbNotifs, debts] = await Promise.all([
+        groupService.getNotifications(),
+        groupService.getUserUnpaidDebts().catch((err) => {
+          console.error('Error fetching unpaid debts for reminders:', err);
+          return [];
+        }),
+      ]);
+
+      const virtualNotifs: AppNotification[] = (debts || []).map((d) => ({
+        notification_id: `reminder_${d.group_id}_${d.creditor_id}`,
+        title: 'Nhắc nhở nợ',
+        message: `Bạn đang nợ ${d.creditor_name} số tiền ${d.amount}`,
+        is_read: false,
+        created_at: new Date().toISOString(),
+        data: {
+          type: 'debt_reminder',
+          group_id: d.group_id,
+          group_name: d.group_name,
+          actor: d.creditor_name,
+          amount: d.amount,
+        },
+      }));
+
+      setNotifications([...virtualNotifs, ...dbNotifs]);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
